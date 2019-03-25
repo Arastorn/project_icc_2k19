@@ -9,11 +9,11 @@ import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 
-import routes.ProductRouter
-import actors.ProductRequestHandler
+import routes.Router
+import products.actors.ProductRequestHandler
 
 
-object ApplicationServer extends App with ProductRouter {
+object ApplicationServer extends App with Router {
 
   val host="localhost"
   val port = 9000

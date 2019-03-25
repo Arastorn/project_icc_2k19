@@ -13,12 +13,12 @@ import org.scalatest.{Matchers, WordSpec}
 
 import scala.concurrent.duration._
 
-import actors.ProductRequestHandler
-import messages.ProductMessages._
-import models._
+import products.actors.ProductRequestHandler
+import products.messages.ProductMessages._
+import products.models._
 
 
-class ProductRouterTest extends WordSpec with Matchers with ScalatestRouteTest with ProductRouter {
+class RouterTest extends WordSpec with Matchers with ScalatestRouteTest with Router {
 
   implicit def default(implicit system: ActorSystem) = RouteTestTimeout(5 seconds)
   //override def testConfigSource = "akka.loglevel = DEBUG"

@@ -1,5 +1,6 @@
 package routes
 
+// packages
 import akka.pattern.ask
 import akka.util.Timeout
 import scala.concurrent.duration._
@@ -12,14 +13,19 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.json._
 
-import actors.ProductRequestHandler
-import messages.ProductMessages._
-import models._
+// Services
+import products.actors.ProductRequestHandler
+import products.messages.ProductMessages._
+import products.models._
+
+// routes
+
+import routes.home.HomeRouter
 
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
-trait ProductRouter {
+trait Router extends HomeRouter{
 
   implicit val system: ActorSystem
 
@@ -126,15 +132,7 @@ trait ProductRouter {
       pathPrefix(IntNumber) {id => productId(id)}
     }
 
-  def welcomeOnApiPath: Route =
-    pathEndOrSingleSlash {
-      complete(
-        HttpEntity(
-          ContentTypes.`text/plain(UTF-8)`,
-          "<html><body>Hello ! Welcome on the product API</body></html>"
-        )
-      )
-    }
+
 
   def route: Route  =
     product ~

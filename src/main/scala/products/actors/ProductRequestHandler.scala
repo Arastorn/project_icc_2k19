@@ -1,11 +1,11 @@
-package actors
+package products.actors
 
 import akka.actor.{Actor, ActorLogging, Props}
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 
-import models._
-import messages.ProductMessages._
+import products.models._
+import products.messages.ProductMessages._
 
 class ProductRequestHandler extends Actor with ActorLogging{
 
