@@ -22,14 +22,16 @@ import services.products.models._
 // routes
 import routes.home.HomeRouter
 import routes.products.ProductRouter
+import routes.extract.ExtractRouter
 
 
-trait Router extends HomeRouter with ProductRouter{
+trait Router extends HomeRouter with ProductRouter with ExtractRouter{
 
   implicit val system: ActorSystem
 
   def route: Route  =
     product ~
+    welcomeOnApiPathExtract ~
     welcomeOnApiPath
 
 }

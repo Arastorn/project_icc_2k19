@@ -21,7 +21,7 @@ import services.products.models._
 
 
 trait ProductRouter {
-  
+
   implicit val timeout: Timeout = 5.seconds
 
   def productRequestHandler: ActorRef
