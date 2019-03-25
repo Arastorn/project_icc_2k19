@@ -1,4 +1,4 @@
-package products.models
+package services.products.models
 
 import spray.json._
 import DefaultJsonProtocol._

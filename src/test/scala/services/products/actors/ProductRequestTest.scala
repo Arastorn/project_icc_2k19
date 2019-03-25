@@ -1,4 +1,4 @@
-package products.actors
+package services.products.actors
 
 
 import org.scalatest.{ BeforeAndAfterAll, FlatSpecLike, Matchers, WordSpecLike}
@@ -12,8 +12,8 @@ import DefaultJsonProtocol._
 
 import scala.concurrent.duration._
 
-import products.messages.ProductMessages._
-import products.models._
+import services.products.messages.ProductMessages._
+import services.products.models._
 
 class ProductRequestTest extends TestKit(ActorSystem("MySpec")) with ImplicitSender
   with WordSpecLike with Matchers with BeforeAndAfterAll {

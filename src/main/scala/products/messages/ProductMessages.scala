@@ -1,6 +1,6 @@
-package products.messages
+package services.products.messages
 
-import products.models._
+import services.products.models._
 import akka.actor._
 import spray.json._
 

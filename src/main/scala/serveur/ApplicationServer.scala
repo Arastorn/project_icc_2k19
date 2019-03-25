@@ -10,7 +10,7 @@ import akka.stream.ActorMaterializer
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 
 import routes.Router
-import products.actors.ProductRequestHandler
+import services.products.actors.ProductRequestHandler
 
 
 object ApplicationServer extends App with Router {

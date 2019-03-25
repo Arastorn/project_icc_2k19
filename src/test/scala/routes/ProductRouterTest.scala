@@ -13,9 +13,9 @@ import org.scalatest.{Matchers, WordSpec}
 
 import scala.concurrent.duration._
 
-import products.actors.ProductRequestHandler
-import products.messages.ProductMessages._
-import products.models._
+import services.products.actors.ProductRequestHandler
+import services.products.messages.ProductMessages._
+import services.products.models._
 
 
 class RouterTest extends WordSpec with Matchers with ScalatestRouteTest with Router {

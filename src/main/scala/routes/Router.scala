@@ -14,9 +14,9 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.json._
 
 // Services
-import products.actors.ProductRequestHandler
-import products.messages.ProductMessages._
-import products.models._
+import services.products.actors.ProductRequestHandler
+import services.products.messages.ProductMessages._
+import services.products.models._
 
 // routes
 
