@@ -20,16 +20,17 @@ import services.products.models._
 import routes.home.HomeRouter
 import routes.products.ProductRouter
 import routes.hiking.HikingRouter
+import routes.extract.ExtractRouter
 
-trait Router extends HomeRouter with ProductRouter with HikingRouter{
+trait Router extends HomeRouter with ProductRouter with HikingRouter with ExtractRouter{
 
   override implicit val timeout: Timeout = 5.seconds
-
   implicit val system: ActorSystem
 
   def route: Route  =
     product ~
     hiking ~
+    welcomeOnApiPathExtract ~
     welcomeOnApiPath
 
 }
