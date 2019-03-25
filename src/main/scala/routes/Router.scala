@@ -1,6 +1,8 @@
 package routes
 
 // packages
+import akka.util.Timeout
+import scala.concurrent.duration._
 import akka.actor.{Props, ActorLogging, Actor, ActorRef, ActorSystem}
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.model.StatusCodes
@@ -17,14 +19,17 @@ import services.products.models._
 // routes
 import routes.home.HomeRouter
 import routes.products.ProductRouter
+import routes.hiking.HikingRouter
 
+trait Router extends HomeRouter with ProductRouter with HikingRouter{
 
-trait Router extends HomeRouter with ProductRouter{
+  override implicit val timeout: Timeout = 5.seconds
 
   implicit val system: ActorSystem
 
   def route: Route  =
     product ~
+    hiking ~
     welcomeOnApiPath
 
 }
