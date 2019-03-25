@@ -15,7 +15,7 @@ import services.products.actors.ProductRequestHandler
 
 object ApplicationServer extends App with Router {
 
-  val host="localhost"
+  val host = "localhost"
   val port = 9000
 
   implicit val system = ActorSystem()
@@ -25,6 +25,6 @@ object ApplicationServer extends App with Router {
   val productRequestHandler = system.actorOf(ProductRequestHandler.props(), "productRequestHandler")
 
   val bindingFuture = Http().bindAndHandle(route, host, port)
-  println(s"Server online at http://localhost:9000/")
+  println(s"Server online at http://${host}:${port}/")
 
 }
