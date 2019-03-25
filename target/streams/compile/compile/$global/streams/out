@@ -1,7 +1,0 @@
-[0m[[0m[31merror[0m] [0m[0m/home/eisti/Documents/ING3/project_icc_2k19/src/main/scala/routes/Swagger.scala:23:97: ')' expected but ';' found.[0m
-[0m[[0m[31merror[0m] [0m[0m  override val securitySchemeDefinitions: Map[String, ApiKeyAuthDefinition] = Map("apiKey" -&amp;amp;amp;amp;amp;gt; apiKey)[0m
-[0m[[0m[31merror[0m] [0m[0m                                                                                                ^[0m
-[0m[[0m[31merror[0m] [0m[0m/home/eisti/Documents/ING3/project_icc_2k19/src/main/scala/routes/Swagger.scala:23:124: ';' expected but ')' found.[0m
-[0m[[0m[31merror[0m] [0m[0m  override val securitySchemeDefinitions: Map[String, ApiKeyAuthDefinition] = Map("apiKey" -&amp;amp;amp;amp;amp;gt; apiKey)[0m
-[0m[[0m[31merror[0m] [0m[0m                                                                                                                           ^[0m
-[0m[[0m[31merror[0m] [0m[0mtwo errors found[0m
