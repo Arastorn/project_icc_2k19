@@ -38,7 +38,6 @@ trait Router extends HomeRouter with ProductRouter with HikingRouter with Extrac
     product ~
     hiking ~
     extract ~
-    welcomeOnApiPathExtract ~
     welcomeOnApiPath ~
     geolocalize ~
     utm ~
@@ -47,5 +46,4 @@ trait Router extends HomeRouter with ProductRouter with HikingRouter with Extrac
     save ~
     metadata ~
     elasticSearch
-
 }
