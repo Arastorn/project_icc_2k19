@@ -38,7 +38,9 @@ object ApplicationServer extends App with Router {
   implicit val executionContext = system.dispatcher
 
   val productRequestHandler = system.actorOf(ProductRequestHandler.props(), "productRequestHandler")
+  
   val extractRequestHandler = system.actorOf(ExtractRequestHandler.props(), "extractRequestHandler")
+
   val hikingRequestHandler = system.actorOf(HikingRequestHandler.props(),"hikingRequestHandler")
 
   val geolocalizeRequestHandler = system.actorOf(GeolocalizeRequestHandler.props(),"geolocalizeRequestHandler")

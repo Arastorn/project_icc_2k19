@@ -4,7 +4,7 @@ package services.hiking.actors
 import akka.actor.{Actor, ActorLogging, Props}
 import spray.json._
 import spray.json.DefaultJsonProtocol._
-import scala.util.parsing.json._
+//import scala.util.parsing.json._
 import scalaj.http._
 
 // services
@@ -17,22 +17,46 @@ class HikingRequestHandler extends Actor with ActorLogging{
     json.asJsObject.getFields("name") match {
       case Seq(JsString(name)) =>
         name
-      case _ =>
-      throw new DeserializationException("label: String expected")
+      case _ => throw new DeserializationException("name: String expected")
     }
 
-  def requestAndParseHiking = {
+  private def parseDescriptionJson(json: JsValue): String =
+    json.asJsObject.getFields("description") match {
+      case Seq(JsString(description)) =>
+        description
+      case _ => throw new DeserializationException("description: String expected")
+    }
+
+  private def parseChoucasApiToHiking(text: String): JsValue = {
+      text.dropRight(1).substring(1).parseJson
+  }
+
+  def requestAndParseHikingById(jsonText: String) : Hiking = {
+    val hikingParsed = parseChoucasApiToHiking(jsonText)
+    Hiking(parseNameJson(hikingParsed),parseDescriptionJson(hikingParsed))
+  }
+
+  def requestAndParseHiking : Hiking = {
     val request: HttpRequest = Http("https://choucas.blqn.fr/data/outing/921410")
-    val json = request.asString.body.toJson
-    println(parseNameJson(json))
+    val jsonAsText = request.asString.body.dropRight(1).substring(1)
+    val hikingParsed = jsonAsText.parseJson
+    Hiking(parseNameJson(hikingParsed),parseDescriptionJson(hikingParsed))
   }
 
   override def receive: Receive = {
 
+    case GetHikingById(id) =>
+      print("GetHikingById")
+      val jsonAsText = Http("https://choucas.blqn.fr/data/outing/" + id.toString).asString.body
+      if(jsonAsText.length() < 3) {
+        sender() ! HikingThrowServerError()
+      } else {
+        sender() ! HikingResponse(requestAndParseHikingById(jsonAsText))
+      }
+
     case GetHikingRequest =>
       println("Received GetHikingRequest")
-      requestAndParseHiking
-      sender() ! HikingResponse("ok")
+      sender() ! HikingResponse(requestAndParseHiking)
   }
 }
 

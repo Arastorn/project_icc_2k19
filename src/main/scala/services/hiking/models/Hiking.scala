@@ -4,8 +4,8 @@ import spray.json._
 import DefaultJsonProtocol._
 
 final case class Hiking(
-  namme: String,
-  texte: String
+  name: String,
+  description: String
 )
 
 object Hiking extends DefaultJsonProtocol {

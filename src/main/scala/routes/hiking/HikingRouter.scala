@@ -24,6 +24,26 @@ trait HikingRouter {
 
   def hikingRequestHandler : ActorRef
 
+  def getHikingById(id: Int) : Route = {
+    get {
+      onSuccess(hikingRequestHandler ? GetHikingById(id))
+      {
+        case response: HikingResponse =>
+          complete(StatusCodes.OK, response.hiking)
+        case response: HikingThrowServerError =>
+          complete(StatusCodes.NotFound)
+        case _ =>
+          complete(StatusCodes.InternalServerError)
+      }
+    }
+  }
+
+  def hikingId(id : Int) : Route = {
+    pathEndOrSingleSlash{
+      getHikingById(id)
+    }
+  }
+
   def getHiking: Route =
     get {
       onSuccess(hikingRequestHandler ? GetHikingRequest) {
@@ -38,6 +58,8 @@ trait HikingRouter {
     pathPrefix("hiking") { // the products
       pathEndOrSingleSlash { // /product or /product/
         getHiking
-      }
+      } ~
+      pathPrefix(IntNumber) {id => hikingId(id)}
     }
+
 }
