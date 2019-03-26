@@ -27,8 +27,9 @@ import routes.images.ImagesRouter
 import routes.tiles.TilesRouter
 import routes.save.SaveRouter
 import routes.metadata.MetadataRouter
+import routes.elasticSearch.ElasticSearchRouter
 
-trait Router extends HomeRouter with ProductRouter with HikingRouter with ExtractRouter with GeolocalizeRouter with UtmRouter with ImagesRouter with TilesRouter with SaveRouter with MetadataRouter {
+trait Router extends HomeRouter with ProductRouter with HikingRouter with ExtractRouter with GeolocalizeRouter with UtmRouter with ImagesRouter with TilesRouter with SaveRouter with MetadataRouter with ElasticSearchRouter {
 
   override implicit val timeout: Timeout = 5.seconds
   implicit val system: ActorSystem
@@ -43,6 +44,7 @@ trait Router extends HomeRouter with ProductRouter with HikingRouter with Extrac
     images ~
     tiles ~
     save ~
-    metadata
+    metadata ~
+    elasticSearch
 
 }
