@@ -5,6 +5,8 @@ import akka.actor._
 import spray.json._
 
 object HikingMessages {
-  case class HikingResponse(hiking: String)
+  case class GetHikingById(id: Int)
+  case class HikingResponse(hiking: Hiking)
+  case class HikingThrowServerError()
   object GetHikingRequest
 }
