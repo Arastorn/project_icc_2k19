@@ -25,6 +25,7 @@ import services.utm.actors.UtmRequestHandler
 import services.images.actors.ImagesRequestHandler
 import services.tiles.actors.TilesRequestHandler
 import services.save.actors.SaveRequestHandler
+import services.metadata.actors.MetadataRequestHandler
 
 object ApplicationServer extends App with Router {
 
@@ -49,6 +50,8 @@ object ApplicationServer extends App with Router {
   val tilesRequestHandler = system.actorOf(TilesRequestHandler.props(),"tilesRequestHandler")
 
   val saveRequestHandler = system.actorOf(SaveRequestHandler.props(),"saveRequestHandler")
+
+  val metadataRequestHandler = system.actorOf(MetadataRequestHandler.props(),"metadataRequestHandler")
 
   val bindingFuture: Future[Http.ServerBinding] = Http().bindAndHandle(route, host, port)
 
