@@ -22,8 +22,9 @@ import routes.products.ProductRouter
 import routes.hiking.HikingRouter
 import routes.extract.ExtractRouter
 import routes.geolocalize.GeolocalizeRouter
+import routes.utm.UtmRouter
 
-trait Router extends HomeRouter with ProductRouter with HikingRouter with ExtractRouter with GeolocalizeRouter{
+trait Router extends HomeRouter with ProductRouter with HikingRouter with ExtractRouter with GeolocalizeRouter with UtmRouter {
 
   override implicit val timeout: Timeout = 5.seconds
   implicit val system: ActorSystem
@@ -33,6 +34,7 @@ trait Router extends HomeRouter with ProductRouter with HikingRouter with Extrac
     hiking ~
     welcomeOnApiPathExtract ~
     welcomeOnApiPath ~
-    geolocalize
+    geolocalize ~
+    utm
 
 }

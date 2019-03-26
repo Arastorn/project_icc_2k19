@@ -21,6 +21,7 @@ import services.products.actors.ProductRequestHandler
 import services.hiking.actors.HikingRequestHandler
 import services.extract.actors.ExtractRequestHandler
 import services.geolocalize.actors.GeolocalizeRequestHandler
+import services.utm.actors.UtmRequestHandler
 
 object ApplicationServer extends App with Router {
 
@@ -37,6 +38,8 @@ object ApplicationServer extends App with Router {
   val hikingRequestHandler = system.actorOf(HikingRequestHandler.props(),"hikingRequestHandler")
 
   val geolocalizeRequestHandler = system.actorOf(GeolocalizeRequestHandler.props(),"geolocalizeRequestHandler")
+
+  val utmRequestHandler = system.actorOf(UtmRequestHandler.props(),"utmRequestHandler")
 
   val bindingFuture: Future[Http.ServerBinding] = Http().bindAndHandle(route, host, port)
 
