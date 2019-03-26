@@ -26,6 +26,7 @@ import services.images.actors.ImagesRequestHandler
 import services.tiles.actors.TilesRequestHandler
 import services.save.actors.SaveRequestHandler
 import services.metadata.actors.MetadataRequestHandler
+import services.elasticSearch.actors.ElasticSearchRequestHandler
 
 object ApplicationServer extends App with Router {
 
@@ -52,6 +53,8 @@ object ApplicationServer extends App with Router {
   val saveRequestHandler = system.actorOf(SaveRequestHandler.props(),"saveRequestHandler")
 
   val metadataRequestHandler = system.actorOf(MetadataRequestHandler.props(),"metadataRequestHandler")
+
+  val elasticSearchRequestHandler = system.actorOf(ElasticSearchRequestHandler.props(),"elasticSearchRequestHandler")
 
   val bindingFuture: Future[Http.ServerBinding] = Http().bindAndHandle(route, host, port)
 
