@@ -33,7 +33,6 @@ object ApplicationServer extends App with Router {
 
   val productRequestHandler = system.actorOf(ProductRequestHandler.props(), "productRequestHandler")
   val extractRequestHandler = system.actorOf(ExtractRequestHandler.props(), "extractRequestHandler")
-
   val hikingRequestHandler = system.actorOf(HikingRequestHandler.props(),"hikingRequestHandler")
 
   val bindingFuture: Future[Http.ServerBinding] = Http().bindAndHandle(route, host, port)
