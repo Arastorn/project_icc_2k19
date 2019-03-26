@@ -6,8 +6,8 @@ import spray.json._
 
 object ExtractMessages {
 
-  case class ExtractResponse(text: String)
-  case class ExtractTextInHeaderRequest(text: JsValue)
+  case class ExtractResponse(text: JsValue)
+  case class ExtractTextInHeaderRequestPost(text: JsValue)
 
   object GetExtractRequest
 

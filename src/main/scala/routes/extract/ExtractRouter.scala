@@ -28,9 +28,9 @@ trait ExtractRouter {
   def extractWithTextInHeader: Route = {
     post {
       entity(as[JsValue]) {
-        text => onSuccess(extractRequestHandler ? ExtractTextInHeaderRequest(text)) {
+        text => onSuccess(extractRequestHandler ? ExtractTextInHeaderRequestPost(text)) {
           case response: ExtractResponse =>
-            println(response)
+            println(response.text)
             complete(StatusCodes.OK,response.text)
           case _ =>
             complete(StatusCodes.InternalServerError)
