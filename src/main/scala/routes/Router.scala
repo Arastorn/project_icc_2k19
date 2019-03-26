@@ -37,7 +37,7 @@ trait Router extends HomeRouter with ProductRouter with HikingRouter with Extrac
   def route: Route  =
     product ~
     hiking ~
-    welcomeOnApiPathExtract ~
+    extract ~
     welcomeOnApiPath ~
     geolocalize ~
     utm ~
@@ -46,5 +46,4 @@ trait Router extends HomeRouter with ProductRouter with HikingRouter with Extrac
     save ~
     metadata ~
     elasticSearch
-
 }
