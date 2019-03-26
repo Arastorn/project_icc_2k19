@@ -24,6 +24,7 @@ import services.geolocalize.actors.GeolocalizeRequestHandler
 import services.utm.actors.UtmRequestHandler
 import services.images.actors.ImagesRequestHandler
 import services.tiles.actors.TilesRequestHandler
+import services.save.actors.SaveRequestHandler
 
 object ApplicationServer extends App with Router {
 
@@ -46,6 +47,8 @@ object ApplicationServer extends App with Router {
   val imagesRequestHandler = system.actorOf(ImagesRequestHandler.props(),"imagesRequestHandler")
 
   val tilesRequestHandler = system.actorOf(TilesRequestHandler.props(),"tilesRequestHandler")
+
+  val saveRequestHandler = system.actorOf(SaveRequestHandler.props(),"saveRequestHandler")
 
   val bindingFuture: Future[Http.ServerBinding] = Http().bindAndHandle(route, host, port)
 
