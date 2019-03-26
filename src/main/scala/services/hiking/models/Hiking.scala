@@ -4,9 +4,10 @@ import spray.json._
 import DefaultJsonProtocol._
 
 final case class Hiking(
+  namme: String,
   texte: String
 )
 
 object Hiking extends DefaultJsonProtocol {
-  implicit val productFormat = jsonFormat1(Hiking.apply)
+  implicit val productFormat = jsonFormat2(Hiking.apply)
 }
