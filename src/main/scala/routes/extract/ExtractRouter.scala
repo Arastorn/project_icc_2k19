@@ -13,7 +13,6 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import spray.json._
 
-
 // Services
 import services.extract.actors.ExtractRequestHandler
 import services.extract.messages.ExtractMessages._
@@ -22,17 +21,54 @@ import services.extract.models._
 
 trait ExtractRouter {
 
-  def welcomeOnApiPathExtract: Route = {
-    path("extract") {
-      get {
-        complete(
-          HttpEntity(
-            ContentTypes.`text/html(UTF-8)`,
-            "<html><body>Hello ! Welcome on the extract API</body></html>"
-          )
-        )
+  implicit val timeout: Timeout = 5.seconds
+
+  def extractRequestHandler: ActorRef
+
+  def extractWithTextInHeader: Route = {
+    post {
+      entity(as[JsValue]) {
+        text => onSuccess(extractRequestHandler ? ExtractTextInHeaderRequest(text)) {
+          case response: ExtractResponse =>
+            println(response)
+            complete(StatusCodes.OK,response.text)
+          case _ =>
+            complete(StatusCodes.InternalServerError)
+        }
       }
     }
   }
+
+  def extract: Route = {
+    pathPrefix("extract") {
+      pathEndOrSingleSlash {
+        extractWithTextInHeader
+      }
+    }
+  }
+/*
+entity(as[JsValue]) {
+  text => onSuccess(extractRequestHandler ? GetExtractRequest) {
+    case response: ExtractResponse =>
+      complete(StatusCodes.OK, response.text)
+    case _ =>
+      complete(StatusCodes.InternalServerError)
+  }
+}
+  def putInProductIdChangePrice(id : Int) : Route = {
+    path("changePrice") { // /product/:id/changePrice
+      put {
+        entity(as[JsValue]) { productReport =>
+          onSuccess(productRequestHandler ? ChangeProductPriceRequest(productReport,id)) {
+            case response: ProductResponse =>
+              complete(StatusCodes.OK, response.product)
+            case _ =>
+              complete(StatusCodes.InternalServerError)
+          }
+        }
+      }
+    }
+  }
+  */
 
 }
