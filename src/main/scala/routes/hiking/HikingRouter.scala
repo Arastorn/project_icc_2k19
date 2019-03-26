@@ -44,21 +44,9 @@ trait HikingRouter {
     }
   }
 
-  def getHiking: Route =
-    get {
-      onSuccess(hikingRequestHandler ? GetHikingRequest) {
-        case response: HikingResponse =>
-          complete(StatusCodes.OK, response.hiking)
-        case _ =>
-          complete(StatusCodes.InternalServerError)
-      }
-    }
 
   def hiking: Route =
-    pathPrefix("hiking") { // the products
-      pathEndOrSingleSlash { // /product or /product/
-        getHiking
-      } ~
+    pathPrefix("hiking") {
       pathPrefix(IntNumber) {id => hikingId(id)}
     }
 

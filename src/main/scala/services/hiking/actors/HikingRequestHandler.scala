@@ -36,27 +36,16 @@ class HikingRequestHandler extends Actor with ActorLogging{
     Hiking(parseNameJson(hikingParsed),parseDescriptionJson(hikingParsed))
   }
 
-  def requestAndParseHiking : Hiking = {
-    val request: HttpRequest = Http("https://choucas.blqn.fr/data/outing/921410")
-    val jsonAsText = request.asString.body.dropRight(1).substring(1)
-    val hikingParsed = jsonAsText.parseJson
-    Hiking(parseNameJson(hikingParsed),parseDescriptionJson(hikingParsed))
-  }
-
   override def receive: Receive = {
 
     case GetHikingById(id) =>
-      print("GetHikingById")
+      println("GetHikingById")
       val jsonAsText = Http("https://choucas.blqn.fr/data/outing/" + id.toString).asString.body
       if(jsonAsText.length() < 3) {
         sender() ! HikingThrowServerError()
       } else {
         sender() ! HikingResponse(requestAndParseHikingById(jsonAsText))
       }
-
-    case GetHikingRequest =>
-      println("Received GetHikingRequest")
-      sender() ! HikingResponse(requestAndParseHiking)
   }
 }
 
