@@ -30,10 +30,9 @@ trait ExtractRouter {
       entity(as[JsValue]) {
         text => onSuccess(extractRequestHandler ? ExtractTextInHeaderRequestPost(text)) {
           case response: ExtractResponse =>
-            println(response.text)
-            complete(StatusCodes.OK,response.text)
-          case _ =>
-            complete(StatusCodes.InternalServerError)
+            complete(StatusCodes.OK, response.text)
+          case response: ExtractResponseNotFound =>
+            complete(StatusCodes.NotFound)
         }
       }
     }
