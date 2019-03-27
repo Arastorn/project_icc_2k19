@@ -11,21 +11,14 @@ import services.extract.messages.ExtractMessages._
 
 class ExtractRequestHandler extends Actor with ActorLogging {
 
-  case class StatusRequest(
-    status: String
-  )
-
-  object StatusRequest extends DefaultJsonProtocol {
-    implicit val statusRequestFormat = jsonFormat1(StatusRequest.apply)
-  }
-
   private def parseJSONResources(json: JsValue): JsValue = {
     Map("entities" ->
-    json.asJsObject.getFields("Resources").head.toString.dropRight(1).substring(1).replace("{","").replace("}","").split(",").toList.map(item => item.toString).filter(
-      item => item.contains("@URI")
-    ).map(
-      item => item.substring(7).replace("\"","") //"@URI:"
-    ).toList).toJson
+      json.asJsObject.getFields("Resources").head.toString.dropRight(1).substring(1).replace("{","").replace("}","").split(",").toList.map(item => item.toString).filter(
+        item => item.contains("@URI")
+      ).map(
+        item => item.substring(7).replace("\"","") //"@URI:"
+      ).toList
+    ).toJson
   }
 
   private def prepareData(text: JsValue): String = {
@@ -38,7 +31,7 @@ class ExtractRequestHandler extends Actor with ActorLogging {
       val dataDesc = dataMap("description")
       dataName.concat(" ").concat(dataDesc)
     } else {
-      ""
+      "{}"
     }
   }
 
@@ -49,7 +42,7 @@ class ExtractRequestHandler extends Actor with ActorLogging {
         val response = request.header("Accept", "application/json").postForm(Seq("text" -> data, "confidence" -> "0.2", "support" -> "50")).asString
         parseJSONResources(response.body.parseJson)
       } else {
-        "{}".toJson
+        data.toJson
       }
   }
 
