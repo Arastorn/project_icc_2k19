@@ -30,10 +30,9 @@ trait ExtractRouter {
       entity(as[JsValue]) {
         text => onSuccess(extractRequestHandler ? ExtractTextInHeaderRequestPost(text)) {
           case response: ExtractResponse =>
-            println(response.text)
-            complete(StatusCodes.OK,response.text)
-          case _ =>
-            complete(StatusCodes.InternalServerError)
+            complete(StatusCodes.OK, response.text)
+          case response: ExtractResponseNotFound =>
+            complete(StatusCodes.NotFound)
         }
       }
     }
@@ -46,29 +45,5 @@ trait ExtractRouter {
       }
     }
   }
-/*
-entity(as[JsValue]) {
-  text => onSuccess(extractRequestHandler ? GetExtractRequest) {
-    case response: ExtractResponse =>
-      complete(StatusCodes.OK, response.text)
-    case _ =>
-      complete(StatusCodes.InternalServerError)
-  }
-}
-  def putInProductIdChangePrice(id : Int) : Route = {
-    path("changePrice") { // /product/:id/changePrice
-      put {
-        entity(as[JsValue]) { productReport =>
-          onSuccess(productRequestHandler ? ChangeProductPriceRequest(productReport,id)) {
-            case response: ProductResponse =>
-              complete(StatusCodes.OK, response.product)
-            case _ =>
-              complete(StatusCodes.InternalServerError)
-          }
-        }
-      }
-    }
-  }
-  */
 
 }
