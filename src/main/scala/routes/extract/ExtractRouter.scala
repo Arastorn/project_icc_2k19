@@ -26,7 +26,7 @@ trait ExtractRouter {
   def extractRequestHandler: ActorRef
 
   def extractWithTextInHeader: Route = {
-    post {
+    get {
       entity(as[JsValue]) {
         text => onSuccess(extractRequestHandler ? ExtractTextInHeaderRequestPost(text)) {
           case response: ExtractResponse =>
