@@ -24,7 +24,7 @@ class ExtractRequestHandler extends Actor with ActorLogging {
     json.asJsObject.getFields("Resources").head.toString.dropRight(1).substring(1).replace("{","").replace("}","").split(",").toList.map(item => item.toString).filter(
       item => item.contains("@URI")
     ).map(
-      item => item.substring(7).replace("\"","")
+      item => item.substring(7).replace("\"","") //"@URI:"
     ).toList).toJson
   }
 
@@ -42,11 +42,11 @@ class ExtractRequestHandler extends Actor with ActorLogging {
     }
   }
 
-  private def requestDBPEDIA(text: JsValue, confidence: Double) = {
+  private def requestDBPEDIA(text: JsValue) = {
       val data = prepareData(text)
       if (data != "") {
         val request = Http("http://icc.pau.eisti.fr/rest/annotate")
-        val response = request.header("Accept", "application/json").postForm(Seq("text" -> data, "confidence" -> confidence.toString, "support" -> "50")).asString
+        val response = request.header("Accept", "application/json").postForm(Seq("text" -> data, "confidence" -> "0.2", "support" -> "50")).asString
         parseJSONResources(response.body.parseJson)
       } else {
         "{}".toJson
@@ -55,14 +55,14 @@ class ExtractRequestHandler extends Actor with ActorLogging {
 
   override def receive: Receive = {
     case ExtractTextInHeaderRequestPost(text) =>
-      val res = requestDBPEDIA(text,0.1)
-      if (res.toString.length() <= 5) {
+      val res = requestDBPEDIA(text)
+      if (res.toString.length() < 5) {
         sender() ! ExtractResponseNotFound()
       } else {
         sender() ! ExtractResponse(res)
       }
     case _ =>
-      sender() ! ExtractResponseNotFound
+      sender() ! ExtractResponseNotFound()
   }
 
 }
