@@ -5,6 +5,8 @@ import akka.actor._
 import spray.json._
 
 object GeolocalizeMessages {
-  case class GeolocalizeResponse(geolocalize: String)
-  object GetGeolocalizeRequest
+  case class GeolocalizeResponse(geolocalize: JsValue)
+  case class GeolocalizeThrowServerNotFound()
+  case class GeolocalizeResponseNotFound(json: JsValue)
+  case class GetGeolocalizeRequest(ensReport: JsValue)
 }

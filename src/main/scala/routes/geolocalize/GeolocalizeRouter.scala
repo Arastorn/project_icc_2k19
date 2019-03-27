@@ -26,17 +26,23 @@ trait GeolocalizeRouter {
 
   def getGeolocalize: Route =
     get {
-      onSuccess(geolocalizeRequestHandler ? GetGeolocalizeRequest) {
-        case response: GeolocalizeResponse =>
-          complete(StatusCodes.OK, response.geolocalize)
-        case _ =>
-          complete(StatusCodes.InternalServerError)
+      entity(as[JsValue]) { ensReport =>
+        onSuccess(geolocalizeRequestHandler ? GetGeolocalizeRequest(ensReport)) {
+          case response: GeolocalizeResponse =>
+            complete(StatusCodes.OK, response.geolocalize)
+          case response: GeolocalizeThrowServerNotFound =>
+            complete(StatusCodes.NotFound)
+          case response: GeolocalizeResponseNotFound =>
+            complete(StatusCodes.NotFound, response.json)
+          case _ =>
+            complete(StatusCodes.InternalServerError)
+        }
       }
     }
 
   def geolocalize: Route =
-    pathPrefix("geolocalize") { // the products
-      pathEndOrSingleSlash { // /product or /product/
+    pathPrefix("geolocalize") {
+      pathEndOrSingleSlash {
         getGeolocalize
       }
     }

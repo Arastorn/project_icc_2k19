@@ -4,7 +4,6 @@ package services.hiking.actors
 import akka.actor.{Actor, ActorLogging, Props}
 import spray.json._
 import spray.json.DefaultJsonProtocol._
-//import scala.util.parsing.json._
 import scalaj.http._
 
 // services

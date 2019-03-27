@@ -4,8 +4,8 @@ import spray.json._
 import DefaultJsonProtocol._
 
 final case class Geolocalize(
-  namme: String,
-  texte: String
+  place: String,
+  coord: String
 )
 
 object Geolocalize extends DefaultJsonProtocol {
