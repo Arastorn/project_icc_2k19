@@ -4,8 +4,8 @@ import spray.json._
 import DefaultJsonProtocol._
 
 final case class Utm(
-  namme: String,
-  texte: String
+  x: Double,
+  y: Double
 )
 
 object Utm extends DefaultJsonProtocol {

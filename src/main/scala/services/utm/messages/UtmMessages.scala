@@ -5,6 +5,12 @@ import akka.actor._
 import spray.json._
 
 object UtmMessages {
-  case class UtmResponse(utm: String)
+
+  case class UtmResponse(utm: JsValue)
+  case class UtmGetRequest(text: JsValue)
+  case class UtmGetRequestMGRS(text: JsValue)
+  case class UtmThrowServerError()
+  case class UtmResponseNotFound()
+
   object GetUtmRequest
 }
