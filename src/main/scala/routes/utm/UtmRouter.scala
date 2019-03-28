@@ -37,27 +37,10 @@ trait UtmRouter {
     }
   }
 
-  def getUtmMGRS: Route = {
-    get {
-      entity(as[JsValue]) {
-        text => onSuccess(utmRequestHandler ? UtmGetRequestMGRS(text)) {
-          case response: UtmResponse =>
-            complete(StatusCodes.OK,response.utm)
-          case response: UtmResponseNotFound =>
-            complete(StatusCodes.NotFound)
-        }
-      }
-    }
-  }
-
   def utm: Route =
     pathPrefix("utm") {
       pathEndOrSingleSlash {
         getUtm
-      } ~ path("mgrs") {
-        pathEndOrSingleSlash {
-          getUtmMGRS
-        }
       }
     }
 }
