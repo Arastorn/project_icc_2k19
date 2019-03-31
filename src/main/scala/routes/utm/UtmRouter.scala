@@ -24,19 +24,22 @@ trait UtmRouter {
 
   def utmRequestHandler : ActorRef
 
-  def getUtm: Route =
+  def getUtm: Route = {
     get {
-      onSuccess(utmRequestHandler ? GetUtmRequest) {
-        case response: UtmResponse =>
-          complete(StatusCodes.OK, response.utm)
-        case _ =>
-          complete(StatusCodes.InternalServerError)
+      entity(as[JsValue]) {
+        text => onSuccess(utmRequestHandler ? UtmGetRequest(text)) {
+          case response: UtmResponse =>
+            complete(StatusCodes.OK,response.utm)
+          case response: UtmResponseNotFound =>
+            complete(StatusCodes.NotFound)
+        }
       }
     }
+  }
 
   def utm: Route =
-    pathPrefix("utm") { // the products
-      pathEndOrSingleSlash { // /product or /product/
+    pathPrefix("utm") {
+      pathEndOrSingleSlash {
         getUtm
       }
     }

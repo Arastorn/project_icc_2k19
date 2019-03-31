@@ -18,7 +18,6 @@ import services.extract.actors.ExtractRequestHandler
 import services.extract.messages.ExtractMessages._
 import services.extract.models._
 
-
 trait ExtractRouter {
 
   implicit val timeout: Timeout = 5.seconds
