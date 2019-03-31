@@ -22,7 +22,7 @@ class HikingRequestHandler extends Actor with ActorLogging{
   private def parseDescriptionJson(json: JsValue): String =
     json.asJsObject.getFields("description") match {
       case Seq(JsString(description)) =>
-        description
+        description.replaceAll("\n","")
       case _ => throw new DeserializationException("description: String expected")
     }
 
