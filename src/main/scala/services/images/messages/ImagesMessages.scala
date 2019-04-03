@@ -5,6 +5,6 @@ import akka.actor._
 import spray.json._
 
 object ImagesMessages {
-  case class ImagesResponse(images: String)
-  object GetImagesRequest
+  case class ImagesResponse(images: JsValue)
+  case class GetImagesRequest(coords: JsValue)
 }

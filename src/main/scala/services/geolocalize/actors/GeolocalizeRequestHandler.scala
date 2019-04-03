@@ -16,7 +16,6 @@ class GeolocalizeRequestHandler extends Actor with ActorLogging{
   def parseEnsToUri(jsonEns: JsValue): JsValue = {
     jsonEns.asJsObject.getFields("entities") match {
       case Seq(entities) =>
-        print(entities)
         entities
       case _ => "{}".parseJson
     }

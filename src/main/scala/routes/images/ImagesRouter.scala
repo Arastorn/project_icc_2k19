@@ -26,11 +26,13 @@ trait ImagesRouter {
 
   def getImages: Route =
     get {
-      onSuccess(imagesRequestHandler ? GetImagesRequest) {
-        case response: ImagesResponse =>
-          complete(StatusCodes.OK, response.images)
-        case _ =>
-          complete(StatusCodes.InternalServerError)
+      entity(as[JsValue]) { coords =>
+        onSuccess(imagesRequestHandler ? GetImagesRequest(coords)) {
+          case response: ImagesResponse =>
+            complete(StatusCodes.OK, response.images)
+          case _ =>
+            complete(StatusCodes.InternalServerError)
+        }
       }
     }
 
