@@ -1,6 +1,11 @@
 package services.images.actors
 
 import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.concurrent._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 import scalaj.http._
@@ -8,11 +13,17 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.GregorianCalendar;
+import java.io._
+import sys.process._
+
 
 import services.images.models._
 import services.images.messages.ImagesMessages._
 
 class ImagesRequestHandler extends Actor with ActorLogging{
+
+  //implicit val system = ActorSystem()
+  //implicit val executionContext = system.dispatcher
 
   def getCoordsFromSw(jsonCoords: JsValue): (String,String) = {
     jsonCoords.asJsObject.getFields("sw") match {
@@ -30,12 +41,16 @@ class ImagesRequestHandler extends Actor with ActorLogging{
     }
   }
 
-  def parseBoundingBox(jsonCoords: JsValue): JsValue = {
-    jsonCoords.asJsObject.getFields("boundingbox") match {
-      case Seq(boundingbox) =>
-        boundingbox
+  def getItemFromJsKey(json: JsValue, key: String): JsValue = {
+    json.asJsObject.getFields(key) match {
+      case Seq(item) =>
+        item
       case _ => "{}".parseJson
     }
+  }
+
+  def parseBoundingBox(jsonCoords: JsValue): JsValue = {
+    getItemFromJsKey(jsonCoords,"boundingbox")
   }
 
   def getDate(): String = {
@@ -58,24 +73,63 @@ class ImagesRequestHandler extends Actor with ActorLogging{
 
   def getMostRecentImage(jsonFromPeps: JsValue): JsValue = {
     jsonFromPeps.asJsObject.getFields("features") match {
-      case Seq(features) =>
-        features
+      case Seq(JsArray(features)) =>
+        features(0)
       case _ => "{}".parseJson
     }
   }
 
-  def getFirstItem(jsonArray: JsValue) = {
-    val toRemove = "[]".toSet
-    jsonArray.toString.filterNot(toRemove)
+
+  def getProperties(jsonImage: JsValue): JsValue = {
+    getItemFromJsKey(jsonImage,"properties")
+  }
+
+  def getService(jsonProperties: JsValue): JsValue = {
+    getItemFromJsKey(jsonProperties, "services")
+  }
+
+  def getDownload(jsonService: JsValue): JsValue = {
+    getItemFromJsKey(jsonService,"download")
+  }
+
+  def getUrl(jsonDownload: JsValue): String = {
+    jsonDownload.asJsObject.getFields("url") match {
+      case Seq(JsString(url)) =>
+        url
+      case _ => ""
+    }
+  }
+
+  def createScript(url: String) = {
+    val script = new PrintWriter(new File("download/script.sh" ))
+    val requete = "wget --quiet --method GET --header 'Authorization: Basic Ym91cmdlb2lzYUBlaXN0aS5ldTpBZHJpZW42Ng==' --header 'cache-control: no-cache' --output-document - " + url + " >> download/images.zip"
+    script.write(requete)
+    script.close
+  }
+
+  def launchScript(): Future[Unit] = Future {
+    val script = "./download/script.sh" !!
+  }
+
+
+  def getUrlFromFirstImage(jsonArray: JsValue) = {
+    val properties = getProperties(jsonArray)
+    val service = getService(properties)
+    val download = getDownload(service)
+    getUrl(download)
   }
 
   override def receive: Receive = {
 
     case request: GetImagesRequest =>
       println("Received GetImagesRequest")
-      val urlImages = getImagesUrl(request.coords)
-      println(getFirstItem(getMostRecentImage(urlImages)))
-      sender() ! ImagesResponse(getMostRecentImage(urlImages))
+      val url = getUrlFromFirstImage(getMostRecentImage(getImagesUrl(request.coords)))
+      if(url.length() > 15) {
+        createScript(url)
+        launchScript()
+        sender() ! ImagesResponse("{\"status\": \"Images Found ! Wait for the dowload in the download/images.zip folder\"}".parseJson)
+      }
+
   }
 }
 
