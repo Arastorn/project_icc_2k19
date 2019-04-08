@@ -3,11 +3,20 @@ package services.tiles.models
 import spray.json._
 import DefaultJsonProtocol._
 
-final case class Tiles(
-  namme: String,
-  texte: String
+final case class CorrectTiles(
+  path: String,
+  status: String
 )
 
-object Tiles extends DefaultJsonProtocol {
-  implicit val productFormat = jsonFormat2(Tiles.apply)
+final case class ErrorTiles(
+  path: String,
+  error: String
+)
+
+object CorrectTiles extends DefaultJsonProtocol {
+  implicit val productFormat = jsonFormat2(CorrectTiles.apply)
+}
+
+object ErrorTiles extends DefaultJsonProtocol {
+  implicit val productFormat = jsonFormat2(ErrorTiles.apply)
 }

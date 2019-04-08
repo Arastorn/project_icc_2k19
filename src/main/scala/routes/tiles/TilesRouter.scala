@@ -26,11 +26,13 @@ trait TilesRouter {
 
   def getTiles: Route =
     get {
-      onSuccess(tilesRequestHandler ? GetTilesRequest) {
+      entity(as[JsValue]) {
+        pathImage => onSuccess(tilesRequestHandler ? GetTilesRequest(pathImage)) {
         case response: TilesResponse =>
-          complete(StatusCodes.OK, response.tiles)
-        case _ =>
+          complete(StatusCodes.OK, response.pathTiles)
+        case response: TilesThrowServerError =>
           complete(StatusCodes.InternalServerError)
+        }
       }
     }
 

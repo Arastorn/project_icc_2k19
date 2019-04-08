@@ -5,6 +5,7 @@ import akka.actor._
 import spray.json._
 
 object TilesMessages {
-  case class TilesResponse(tiles: String)
-  object GetTilesRequest
+  case class TilesResponse(pathTiles: JsValue)
+  case class TilesThrowServerError()
+  case class GetTilesRequest(pathImage: JsValue)
 }
