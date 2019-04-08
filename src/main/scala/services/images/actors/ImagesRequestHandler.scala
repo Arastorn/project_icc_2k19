@@ -197,7 +197,7 @@ class ImagesRequestHandler extends Actor with ActorLogging{
       if(url.length() > 15) {
         createScript(url)
         downloadImage()
-        sender() ! ImagesResponse("{\"status\": \"Images Found ! Wait for the dowload\",\"path\": \"images/image\"}".parseJson)
+        sender() ! ImagesResponse("{\"status\": \"Images Found ! Wait for the dowload\",\"path\": \"images/image.jp2\"}".parseJson)
       }
 
   }
