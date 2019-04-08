@@ -64,11 +64,15 @@ class ImagesRequestHandler extends Actor with ActorLogging{
     Http("https://peps.cnes.fr/resto/api/collections/S2ST/search.json").param("box", ne._1 + "," + ne._2 + "," + sw._1 + "," + sw._2).param("startDate",getDate()).header("Accept", "application/json").asString.body.parseJson
   }
 
-  def getImagesUrl(jsonCoords: JsValue): JsValue = {
+  def getNeAndSw(jsonCoords: JsValue) : ((String,String),(String,String)) = {
     val coords = parseBoundingBox(jsonCoords)
     val ne = getCoordsFromNe(coords)
     val sw = getCoordsFromSw(coords)
-    sendRequestOnPeps(ne,sw)
+    (ne,sw)
+  }
+
+  def getImagesUrl(coords: ((String,String),(String,String))): JsValue = {
+    sendRequestOnPeps(coords._1,coords._2)
   }
 
   def getMostRecentImage(jsonFromPeps: JsValue): JsValue = {
@@ -175,17 +179,12 @@ class ImagesRequestHandler extends Actor with ActorLogging{
   def downloadImage(): Future[Unit] = Future {
     val script = "./download/script.sh" !!
 
-    println("zip downloaded")
     val path: Path = Paths.get("download","images");
     unzip(new FileInputStream("download/images.zip"),path)
-    println("zip unziped")
     println(getListOfDirectorys(Paths.get("download","images").toFile))
-    println(getImage)
     copyImage("images/image.jp2",getImage.toString)
     deleteRecursively(Paths.get("download","images.zip").toFile)
-    println("zip deleted")
     deleteRecursively(Paths.get("download","images").toFile)
-    println("images deleted")
   }
 
 
@@ -193,13 +192,19 @@ class ImagesRequestHandler extends Actor with ActorLogging{
 
     case request: GetImagesRequest =>
       println("Received GetImagesRequest")
-      val url = getUrlFromFirstImage(getMostRecentImage(getImagesUrl(request.coords)))
-      if(url.length() > 15) {
-        createScript(url)
-        downloadImage()
-        sender() ! ImagesResponse("{\"status\": \"Images Found ! Wait for the dowload\",\"path\": \"images/image.jp2\"}".parseJson)
+      val coords = getNeAndSw(request.coords)
+      if(coords._1._1 == "") {
+        sender() ! WrongJsonCoord("{\"status\": \"Wrong json format for coords\"}".parseJson)
+      } else {
+        val url = getUrlFromFirstImage(getMostRecentImage(getImagesUrl(getNeAndSw(request.coords))))
+        if(url.length() > 15) {
+          createScript(url)
+          downloadImage()
+          sender() ! ImagesResponse("{\"status\": \"Images found, wait for the download\",\"path\": \"images/image.jp2\"}".parseJson)
+        } else {
+          sender() ! NoImageFound("{\"status\": \"No images found on peps\"}".parseJson)
+        }
       }
-
   }
 }
 

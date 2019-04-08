@@ -28,8 +28,12 @@ trait ImagesRouter {
     post {
       entity(as[JsValue]) { coords =>
         onSuccess(imagesRequestHandler ? GetImagesRequest(coords)) {
+          case response: WrongJsonCoord =>
+            complete(StatusCodes.BadRequest, response.status)
           case response: ImagesResponse =>
-            complete(StatusCodes.OK, response.images)
+            complete(StatusCodes.Accepted, response.images)
+          case response: NoImageFound =>
+            complete(StatusCodes.NotFound, response.noImage)
           case _ =>
             complete(StatusCodes.InternalServerError)
         }

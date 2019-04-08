@@ -34,15 +34,11 @@ class TilesRequestHandler extends Actor with ActorLogging {
     }
   }
 
-  private def launchGDAL2TILESCalculation(pathImage: String, father: ActorRef): Future[(String, String)] = {
-    val future = Future {
-      val stdout = new StringBuilder
-      val stderr = new StringBuilder
-      "python gdal2tiles-script/gdal2tiles.py " + pathImage + " outputImage" ! ProcessLogger(stdout append _, stderr append _)
-      (stdout.toString, stderr.toString)
-    }
-    father ! TilesResponse(CorrectTiles(pathImage,s"Currently computing on the image at path ${pathImage}").toJson)
-    future
+  private def launchGDAL2TILESCalculation(pathImage: String): Future[(String, String)] = Future {
+    val stdout = new StringBuilder
+    val stderr = new StringBuilder
+    "python gdal2tiles-script/gdal2tiles.py " + pathImage + " outputImage" ! ProcessLogger(stdout append _, stderr append _)
+    (stdout.toString, stderr.toString)
   }
 
   private def handleGDAL2TILESExceptions(path: String, data: (String, String), father: ActorRef) = {
@@ -57,7 +53,7 @@ class TilesRequestHandler extends Actor with ActorLogging {
     getGDAL2TILES(father)
     val path = prepareData(pathImage)("path")
     if (fileExists(path)) {
-      launchGDAL2TILESCalculation(path, father) onComplete {
+      launchGDAL2TILESCalculation(path) onComplete {
         case Success(data) => handleGDAL2TILESExceptions(path, data, father)
         case Failure(ex) => father ! TilesThrowServerError()
       }
