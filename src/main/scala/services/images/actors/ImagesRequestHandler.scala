@@ -14,6 +14,8 @@ import java.util.Calendar
 import java.util.Date
 import java.util.GregorianCalendar;
 import java.io._
+import java.nio.file.{Path,Paths};
+import java.util.zip.ZipInputStream
 import sys.process._
 
 
@@ -21,9 +23,6 @@ import services.images.models._
 import services.images.messages.ImagesMessages._
 
 class ImagesRequestHandler extends Actor with ActorLogging{
-
-  //implicit val system = ActorSystem()
-  //implicit val executionContext = system.dispatcher
 
   def getCoordsFromSw(jsonCoords: JsValue): (String,String) = {
     jsonCoords.asJsObject.getFields("sw") match {
@@ -56,7 +55,7 @@ class ImagesRequestHandler extends Actor with ActorLogging{
   def getDate(): String = {
     val format = new SimpleDateFormat("yyyy-MM-dd")
     val date = Calendar.getInstance()
-    date.add(Calendar.DATE, -2)
+    date.add(Calendar.DATE, -4)
     format.format(date.getTime())
   }
 
@@ -100,6 +99,14 @@ class ImagesRequestHandler extends Actor with ActorLogging{
     }
   }
 
+  def getUrlFromFirstImage(jsonArray: JsValue) = {
+    val properties = getProperties(jsonArray)
+    val service = getService(properties)
+    val download = getDownload(service)
+    getUrl(download)
+  }
+
+
   def createScript(url: String) = {
     val script = new PrintWriter(new File("download/script.sh" ))
     val requete = "wget --quiet --method GET --header 'Authorization: Basic Ym91cmdlb2lzYUBlaXN0aS5ldTpBZHJpZW42Ng==' --header 'cache-control: no-cache' --output-document - " + url + " >> download/images.zip"
@@ -107,17 +114,55 @@ class ImagesRequestHandler extends Actor with ActorLogging{
     script.close
   }
 
-  def launchScript(): Future[Unit] = Future {
-    val script = "./download/script.sh" !!
+  def unzip(zipFile: InputStream, destination: Path): Unit = {
+    val zis = new ZipInputStream(zipFile)
+    Stream.continually(zis.getNextEntry).takeWhile(_ != null).foreach { file =>
+      if (!file.isDirectory) {
+        val outPath = destination.resolve(file.getName)
+        val outPathParent = outPath.getParent
+        if (!outPathParent.toFile.exists()) {
+          outPathParent.toFile.mkdirs()
+        }
+
+        val outFile = outPath.toFile
+        val out = new FileOutputStream(outFile)
+        val buffer = new Array[Byte](4096)
+        Stream.continually(zis.read(buffer)).takeWhile(_ != -1).foreach(out.write(buffer, 0, _))
+      }
+    }
   }
 
 
-  def getUrlFromFirstImage(jsonArray: JsValue) = {
-    val properties = getProperties(jsonArray)
-    val service = getService(properties)
-    val download = getDownload(service)
-    getUrl(download)
+  def getListOfDirectorys(dir: File):List[File] = dir.listFiles.filter(_.isDirectory).toList
+
+  def getListOfFiles(dir: File):List[File] = dir.listFiles.filter(_.isFile).toList
+
+  def getImagesDirectory(dir: File) = {
+    getListOfFiles(dir).find(_.toString.contains("12"))
+
   }
+
+  def deleteRecursively(file: File): Unit = {
+    if (file.isDirectory)
+      file.listFiles.foreach(deleteRecursively)
+    if (file.exists && !file.delete)
+      throw new Exception(s"Unable to delete ${file.getAbsolutePath}")
+  }
+
+  def downloadImage(): Future[Unit] = Future {
+    //val script = "./download/script.sh" !!
+
+    //println("zip downloaded")
+    //val path: Path = Paths.get("download","images");
+    //unzip(new FileInputStream("download/images.zip"),path)
+    //println("zip unziped")
+    println(getListOfFiles(Paths.get("download","images").toFile))
+    //deleteRecursively(Paths.get("download","images.zip").toFile)
+    //println("zip deleted")
+    //deleteRecursively(Paths.get("download","images").toFile)
+    //println("images deleted")
+  }
+
 
   override def receive: Receive = {
 
@@ -126,8 +171,8 @@ class ImagesRequestHandler extends Actor with ActorLogging{
       val url = getUrlFromFirstImage(getMostRecentImage(getImagesUrl(request.coords)))
       if(url.length() > 15) {
         createScript(url)
-        launchScript()
-        sender() ! ImagesResponse("{\"status\": \"Images Found ! Wait for the dowload in the download/images.zip folder\"}".parseJson)
+        downloadImage()
+        sender() ! ImagesResponse("{\"status\": \"Images Found ! Wait for the dowload\",\"path\": \"images/image\"}".parseJson)
       }
 
   }
