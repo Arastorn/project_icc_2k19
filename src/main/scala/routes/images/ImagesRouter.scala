@@ -20,7 +20,7 @@ import services.images.models._
 
 trait ImagesRouter {
 
-  implicit val timeout: Timeout = 5.seconds
+  implicit val timeout: Timeout = 30.seconds
 
   def imagesRequestHandler : ActorRef
 

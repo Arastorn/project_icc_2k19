@@ -10,6 +10,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpEntity, ContentTypes}
 import akka.http.scaladsl.server.Directives._
 import scala.concurrent.{ExecutionContextExecutor, Future}
+import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 
 // Services
 import services.products.actors.ProductRequestHandler
@@ -31,10 +32,10 @@ import routes.elasticSearch.ElasticSearchRouter
 
 trait Router extends HomeRouter with ProductRouter with HikingRouter with ExtractRouter with GeolocalizeRouter with UtmRouter with ImagesRouter with TilesRouter with SaveRouter with MetadataRouter with ElasticSearchRouter {
 
-  override implicit val timeout: Timeout = 5.seconds
+  override implicit val timeout: Timeout = 30.seconds
   implicit val system: ActorSystem
 
-  def route: Route  =
+  def route: Route  = cors() {
     product ~
     hiking ~
     extract ~
@@ -46,4 +47,5 @@ trait Router extends HomeRouter with ProductRouter with HikingRouter with Extrac
     save ~
     metadata ~
     elasticSearch
+  }
 }

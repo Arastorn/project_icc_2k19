@@ -11,6 +11,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpEntity, ContentTypes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.model.HttpMethods._
 import spray.json._
 
 // Services
@@ -26,17 +27,18 @@ trait HikingRouter {
 
   def getHikingById(id: Int) : Route = {
     get {
-      onSuccess(hikingRequestHandler ? GetHikingById(id))
-      {
-        case response: HikingResponse =>
-          complete(StatusCodes.OK, response.hiking)
-        case response: HikingThrowServerError =>
-          complete(StatusCodes.NotFound)
-        case _ =>
-          complete(StatusCodes.InternalServerError)
+        onSuccess(hikingRequestHandler ? GetHikingById(id))
+        {
+          case response: HikingResponse =>
+             complete(StatusCodes.OK, response.hiking)
+          case response: HikingThrowServerError =>
+            complete(StatusCodes.NotFound)
+          case _ =>
+            complete(StatusCodes.InternalServerError)
+        }
       }
     }
-  }
+
 
   def hikingId(id : Int) : Route = {
     pathEndOrSingleSlash{
