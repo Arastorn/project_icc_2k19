@@ -25,7 +25,7 @@ trait ImagesRouter {
   def imagesRequestHandler : ActorRef
 
   def getImages: Route =
-    get {
+    post {
       entity(as[JsValue]) { coords =>
         onSuccess(imagesRequestHandler ? GetImagesRequest(coords)) {
           case response: ImagesResponse =>

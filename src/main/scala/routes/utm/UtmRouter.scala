@@ -25,7 +25,7 @@ trait UtmRouter {
   def utmRequestHandler : ActorRef
 
   def getUtm: Route = {
-    get {
+    post {
       entity(as[JsValue]) {
         text => onSuccess(utmRequestHandler ? UtmGetRequest(text)) {
           case response: UtmResponse =>

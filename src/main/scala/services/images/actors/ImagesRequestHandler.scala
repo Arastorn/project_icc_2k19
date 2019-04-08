@@ -17,6 +17,7 @@ import java.io._
 import java.nio.file.{Path,Paths};
 import java.util.zip.ZipInputStream
 import sys.process._
+import scala.util.matching.Regex
 
 
 import services.images.models._
@@ -137,9 +138,31 @@ class ImagesRequestHandler extends Actor with ActorLogging{
 
   def getListOfFiles(dir: File):List[File] = dir.listFiles.filter(_.isFile).toList
 
-  def getImagesDirectory(dir: File) = {
-    getListOfFiles(dir).find(_.toString.contains("12"))
+  def recursiveListFiles(f: File, r: Regex): Array[File] = {
+    val these = f.listFiles
+    val good = these.filter(f => r.findFirstIn(f.getName).isDefined)
+    good ++ these.filter(_.isDirectory).flatMap(recursiveListFiles(_,r))
+  }
 
+  def getImgDataFolder() = {
+    recursiveListFiles(Paths.get("download","images").toFile,"IMG_DATA".r).head
+  }
+
+  def getImage(): File = {
+    val imgFolder = getImgDataFolder()
+    val listOfFolder = getListOfDirectorys(imgFolder)
+    if(listOfFolder.length > 0)
+    {
+      getListOfFiles(listOfFolder.filter( f => "10".r.findFirstIn(f.getName).isDefined).head).filter(f => "TCI".r.findFirstIn(f.getName).isDefined).head
+    }
+    else
+    {
+      getListOfFiles(imgFolder).filter(f => "TCI".r.findFirstIn(f.getName).isDefined).head
+    }
+  }
+
+  def copyImage(dest: String, src: String) = {
+    new FileOutputStream(dest) getChannel() transferFrom( new FileInputStream(src) getChannel, 0, Long.MaxValue )
   }
 
   def deleteRecursively(file: File): Unit = {
@@ -150,17 +173,19 @@ class ImagesRequestHandler extends Actor with ActorLogging{
   }
 
   def downloadImage(): Future[Unit] = Future {
-    //val script = "./download/script.sh" !!
+    val script = "./download/script.sh" !!
 
-    //println("zip downloaded")
-    //val path: Path = Paths.get("download","images");
-    //unzip(new FileInputStream("download/images.zip"),path)
-    //println("zip unziped")
-    println(getListOfFiles(Paths.get("download","images").toFile))
-    //deleteRecursively(Paths.get("download","images.zip").toFile)
-    //println("zip deleted")
-    //deleteRecursively(Paths.get("download","images").toFile)
-    //println("images deleted")
+    println("zip downloaded")
+    val path: Path = Paths.get("download","images");
+    unzip(new FileInputStream("download/images.zip"),path)
+    println("zip unziped")
+    println(getListOfDirectorys(Paths.get("download","images").toFile))
+    println(getImage)
+    copyImage("images/image.jp2",getImage.toString)
+    deleteRecursively(Paths.get("download","images.zip").toFile)
+    println("zip deleted")
+    deleteRecursively(Paths.get("download","images").toFile)
+    println("images deleted")
   }
 
 

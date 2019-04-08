@@ -25,7 +25,7 @@ trait TilesRouter {
   def tilesRequestHandler : ActorRef
 
   def getTiles: Route =
-    get {
+    post {
       entity(as[JsValue]) {
         pathImage => onSuccess(tilesRequestHandler ? GetTilesRequest(pathImage)) {
         case response: TilesResponse =>

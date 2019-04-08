@@ -25,7 +25,7 @@ trait GeolocalizeRouter {
   def geolocalizeRequestHandler : ActorRef
 
   def getGeolocalize: Route =
-    get {
+    post {
       entity(as[JsValue]) { ensReport =>
         onSuccess(geolocalizeRequestHandler ? GetGeolocalizeRequest(ensReport)) {
           case response: GeolocalizeResponse =>
