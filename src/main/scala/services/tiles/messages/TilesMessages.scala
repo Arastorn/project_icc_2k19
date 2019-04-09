@@ -9,7 +9,7 @@ object TilesMessages {
   case class TilesThrowServerError()
   case class GetTilesRequest(pathImage: JsValue)
 
-  case class GetComputeStatusRequest()
+  case class GetComputeStatusRequest(imgName: String)
   case class ComputeStatusResponse(downloadStatus: JsValue)
   case class ComputeStatusThrowServerError()
 }

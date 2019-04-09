@@ -9,7 +9,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent._
 import java.io._
-import java.nio.file.{Files, Paths, StandardCopyOption}
+import java.nio.file.{Files, Path, Paths, StandardCopyOption}
 
 import services.tiles.models._
 import services.tiles.messages.TilesMessages._
@@ -20,9 +20,24 @@ class TilesRequestHandler extends Actor with ActorLogging {
     json.convertTo[Map[String,String]]
   }
 
+  private def fileRemove(path: String): Unit = {
+    val file = new File(path)
+    file.delete()
+  }
+
   private def fileExists(path: String): Boolean = {
     val file = new File(path)
     file.exists()
+  }
+
+  private def isDirectory(path: String): Boolean = {
+    val file = new File(path)
+    file.isDirectory()
+  }
+
+  private def isAlreadyTiled(imgName: String): Boolean = {
+    val file = s"tiles/${imgName}"
+    fileExists(file) && isDirectory(file)
   }
 
   private def moveToPermanentPlace(currentPath: String, newPath: String): Unit = {
@@ -31,6 +46,7 @@ class TilesRequestHandler extends Actor with ActorLogging {
       Paths.get(newPath),
       StandardCopyOption.REPLACE_EXISTING
     )
+    fileRemove(currentPath)
   }
 
   def getGDAL2TILES(father: ActorRef): Unit = {
@@ -43,36 +59,71 @@ class TilesRequestHandler extends Actor with ActorLogging {
     }
   }
 
-  private def launchGDAL2TILESCalculation(pathImage: String, father: ActorRef): Future[Unit] = {
-    val future = Future {
-      val stdout = new StringBuilder
-      val stderr = new StringBuilder
-      "python gdal2tiles-script/gdal2tiles.py " + pathImage + " tiles/tmp/tmpOutputImage" ! ProcessLogger(stdout append _, stderr append _)
-      if (fileExists("tiles/tmp/tmpOutputImage")) {
-        moveToPermanentPlace("tiles/tmp/tmpOutputImage","tiles/outputImage")
-      }
+  private def launchGDAL2TILESCalculation(pathImage: String, imgName: String): Future[Unit] = Future {
+    val stdout = new StringBuilder
+    val stderr = new StringBuilder
+    val tmp = s"tiles/tmp/tmp_${imgName}"
+    "python gdal2tiles-script/gdal2tiles.py " + pathImage + " " + tmp ! ProcessLogger(stdout append _, stderr append _)
+    if (fileExists(tmp)) {
+      moveToPermanentPlace(tmp,s"tiles/${imgName}")
     }
-    father ! TilesResponse(CorrectTiles(pathImage,s"Currently computing on the image at path ${pathImage}").toJson)
-    future
+  }
+
+  private def getTCIPathFromIMGData(imgDataPath: File, accuracy: Int): String = {
+    def getListOfDirectories(dir: File): List[File] = dir.listFiles.filter(_.isDirectory).toList
+    def getListOfFiles(dir: File):List[File] = dir.listFiles.filter(_.isFile).toList
+    val listOfDirectoriesAccuracies = getListOfDirectories(imgDataPath)
+    if (listOfDirectoriesAccuracies.length > 0) {
+      getListOfFiles(listOfDirectoriesAccuracies.filter(f => accuracy.toString.r.findFirstIn(f.getName).isDefined).head).filter(f => "TCI".r.findFirstIn(f.getName).isDefined).head.toString
+    } else {
+      ""
+    }
+  }
+
+  private def getTCIPath(pathFull: String, accuracy: Int) = {
+    var path = "";
+    //Same architecture
+    val mandatoryPath = pathFull + "/IMG_DATA"
+    if (fileExists(mandatoryPath) && isDirectory(mandatoryPath)) {
+      val imgDataDir = new File(mandatoryPath)
+      path = getTCIPathFromIMGData(imgDataDir,accuracy)
+    }
+    path
   }
 
   def generateTiles(pathImage: JsValue, father: ActorRef) = {
     getGDAL2TILES(father)
-    val path = prepareData(pathImage)("path")
-    if (fileExists(path)) {
-      launchGDAL2TILESCalculation(path, father)
+    val name = prepareData(pathImage)("name")
+    val pathfull = "images/" + name
+    if (fileExists(pathfull)) {
+      if (isDirectory(pathfull)) {
+        val pathTCI = getTCIPath(pathfull, 10)
+        if (pathTCI.nonEmpty) {
+          if (isAlreadyTiled(name)) {
+            father ! TilesResponse(CorrectTiles(name, s"tiles/${name}", s"Tiles have been already computed for this image").toJson)
+          } else {
+            launchGDAL2TILESCalculation(pathTCI, name)
+            father ! TilesResponse(CorrectTiles(name, s"tiles/${name}", s"Currently computing on the image at path ${pathTCI}").toJson)
+          }
+        } else {
+          father ! TilesResponse(ErrorTiles(pathfull, "This path is not poiting a directory that contains available data. Please specifiy a correct image name ...").toJson)
+        }
+      } else {
+        father ! TilesResponse(ErrorTiles(pathfull, "This path is not poiting a directory. Please specifiy a correct image name ...").toJson)
+      }
     } else {
-      father ! TilesResponse(ErrorTiles(path, "This path does not exist. Please specifiy an existing path ...").toJson)
+      father ! TilesResponse(ErrorTiles(pathfull, "This path does not exist. Please specifiy an image name that is already downloaded ...").toJson)
     }
   }
 
-  def checkDownloadStatus(father: ActorRef) = {
-    if (fileExists("tiles/tmp/tmpOutputImage")) {
-      father ! ComputeStatusResponse(ComputeStatus("Tiles are currently being computed","CURRENTLY_BEING_COMPUTED").toJson)
+  def checkDownloadStatus(imgName: String, father: ActorRef) = {
+    if (fileExists(s"tiles/${imgName}") && isDirectory(s"tiles/${imgName}")) {
+      father ! ComputeStatusResponse(ComputeStatus(imgName,"Tiles are totally computed !","TOTALLY_COMPUTED").toJson)
+    } else if (fileExists(s"tiles/tmp/tmp_${imgName}")) {
+      father ! ComputeStatusResponse(ComputeStatus(imgName,"Tiles are currently being computed","CURRENTLY_BEING_COMPUTED").toJson)
     } else {
-      father ! ComputeStatusResponse(ComputeStatus("Tiles are totally computed !","TOTALLY_COMPUTED").toJson)
+      father ! ComputeStatusResponse(ComputeStatus(imgName,"The tiles for this image do not exists","IMAGE_NOT_TILED").toJson)
     }
-
   }
 
   override def receive: Receive = {
@@ -80,9 +131,9 @@ class TilesRequestHandler extends Actor with ActorLogging {
     case GetTilesRequest(pathImage) =>
       println("Received GetTilesRequest")
       generateTiles(pathImage, sender())
-    case GetComputeStatusRequest =>
+    case GetComputeStatusRequest(imgName) =>
       println("Received GetDownloadStatusRequest")
-      checkDownloadStatus(sender())
+      checkDownloadStatus(imgName,sender())
   }
 }
 
