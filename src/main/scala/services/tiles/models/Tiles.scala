@@ -13,10 +13,19 @@ final case class ErrorTiles(
   error: String
 )
 
+final case class ComputeStatus(
+  status: String,
+  statusCode: String
+)
+
 object CorrectTiles extends DefaultJsonProtocol {
   implicit val productFormat = jsonFormat2(CorrectTiles.apply)
 }
 
 object ErrorTiles extends DefaultJsonProtocol {
   implicit val productFormat = jsonFormat2(ErrorTiles.apply)
+}
+
+object ComputeStatus extends DefaultJsonProtocol {
+  implicit val productFormat = jsonFormat2(ComputeStatus.apply)
 }
