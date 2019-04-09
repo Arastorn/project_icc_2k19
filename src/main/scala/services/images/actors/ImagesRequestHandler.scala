@@ -12,9 +12,9 @@ import scalaj.http._
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
-import java.util.GregorianCalendar;
+import java.util.GregorianCalendar
 import java.io._
-import java.nio.file.{Path,Paths};
+import java.nio.file.{Path,Paths, Files, StandardCopyOption}
 import java.util.zip.ZipInputStream
 import sys.process._
 import scala.util.matching.Regex
@@ -157,24 +157,28 @@ class ImagesRequestHandler extends Actor with ActorLogging{
   }
 
   def getImgDataFolder(name: String) = {
-    recursiveListFiles(Paths.get("download",name).toFile,"IMG_DATA".r).head
+    recursiveListFiles(Paths.get("download",name).toFile,"GRANULE".r).head
   }
 
-  def getImage(name: String): File = {
+  def getImage(name: String): Path = {
     val imgFolder = getImgDataFolder(name)
-    val listOfFolder = getListOfDirectorys(imgFolder)
-    if(listOfFolder.length > 0)
+    getListOfDirectorys(imgFolder).head.toPath
+    /*if(listOfFolder.length > 0)
     {
       getListOfFiles(listOfFolder.filter( f => "10".r.findFirstIn(f.getName).isDefined).head).filter(f => "TCI".r.findFirstIn(f.getName).isDefined).head
     }
     else
     {
       getListOfFiles(imgFolder).filter(f => "TCI".r.findFirstIn(f.getName).isDefined).head
-    }
+    }*/
   }
 
   def copyImage(dest: String, src: String) = {
     new FileOutputStream(dest) getChannel() transferFrom( new FileInputStream(src) getChannel, 0, Long.MaxValue )
+  }
+
+  def moveImage(dest: Path, src: Path)= {
+    Files.move(src, dest, StandardCopyOption.REPLACE_EXISTING)
   }
 
   def deleteRecursively(file: File): Unit = {
@@ -190,7 +194,8 @@ class ImagesRequestHandler extends Actor with ActorLogging{
     val script = "./download/script.sh" !!
 
     unzip(new FileInputStream("download/"+uri+".zip"),Paths.get("download",uri))
-    copyImage("images/"+uri,getImage(uri).toString)
+    //copyImage("images/"+uri,getImage(uri).toString)
+    moveImage(Paths.get("images",uri),getImage(uri))
     deleteRecursively(Paths.get("download",uri+".zip").toFile)
     deleteRecursively(Paths.get("download",uri).toFile)
   }
@@ -209,7 +214,7 @@ class ImagesRequestHandler extends Actor with ActorLogging{
           createScript(url)
           val uri = parseUrl(url)
           val downloadFiles = getFileListName(getListOfEverything(Paths.get("download/").toFile))
-          val imagesFiles = getFileListName(getListOfFiles(Paths.get("images/").toFile))
+          val imagesFiles = getFileListName(getListOfEverything(Paths.get("images/").toFile))
           if(imagesFiles.contains(uri)) {
             sender() ! ImagesResponse(("{\"status\": \"Image already downloaded\",\"name\": \""+ uri +"\"}").parseJson)
           } else if(downloadFiles.contains(uri) || downloadFiles.contains(uri+".zip")) {
