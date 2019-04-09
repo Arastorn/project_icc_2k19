@@ -36,10 +36,25 @@ trait TilesRouter {
       }
     }
 
-  def tiles: Route =
-    pathPrefix("tiles") { // the products
-      pathEndOrSingleSlash { // /product or /product/
-        getTiles
+  def getComputeStatus: Route =
+    get {
+      onSuccess(tilesRequestHandler ? GetComputeStatusRequest) {
+        case response: ComputeStatusResponse =>
+          complete(StatusCodes.OK, response.downloadStatus)
+        case response: ComputeStatusThrowServerError =>
+          complete(StatusCodes.InternalServerError)
       }
     }
+
+  def tiles: Route =
+    pathPrefix("tiles") {
+      pathEndOrSingleSlash {
+        getTiles
+      } ~ pathPrefix("status") {
+        pathEndOrSingleSlash {
+          getComputeStatus
+        }
+      }
+    }
+
 }
