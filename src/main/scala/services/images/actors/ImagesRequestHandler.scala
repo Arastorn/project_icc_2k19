@@ -187,14 +187,12 @@ class ImagesRequestHandler extends Actor with ActorLogging{
 
 
   def downloadImage(uri: String): Future[Unit] = Future {
-    //val script = "./download/script.sh" !!
+    val script = "./download/script.sh" !!
 
-    val path: Path = Paths.get("download",uri);
-    //unzip(new FileInputStream("download/"+uri+".zip"),path)
-    //println(getListOfDirectorys(Paths.get("download",uri).toFile))
+    unzip(new FileInputStream("download/"+uri+".zip"),Paths.get("download",uri))
     copyImage("images/"+uri,getImage(uri).toString)
-    //deleteRecursively(Paths.get("download",uri+".zip").toFile)
-    //deleteRecursively(Paths.get("download",uri).toFile)
+    deleteRecursively(Paths.get("download",uri+".zip").toFile)
+    deleteRecursively(Paths.get("download",uri).toFile)
   }
 
 
@@ -215,7 +213,6 @@ class ImagesRequestHandler extends Actor with ActorLogging{
           if(imagesFiles.contains(uri)) {
             sender() ! ImagesResponse(("{\"status\": \"Image already downloaded\",\"name\": \""+ uri +"\"}").parseJson)
           } else if(downloadFiles.contains(uri) || downloadFiles.contains(uri+".zip")) {
-            downloadImage(uri)
             sender() ! ImagesResponse(("{\"status\": \"Image is already downloading\",\"name\": \""+ uri +"\"}").parseJson)
           } else {
             downloadImage(uri)
