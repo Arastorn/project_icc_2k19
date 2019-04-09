@@ -2,3 +2,5 @@ target/*
 project/target/*
 download/*
 !download/script.sh
+images/*
+gdal2tiles-script/*

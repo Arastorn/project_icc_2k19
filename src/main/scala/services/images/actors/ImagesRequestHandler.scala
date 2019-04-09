@@ -111,10 +111,14 @@ class ImagesRequestHandler extends Actor with ActorLogging{
     getUrl(download)
   }
 
+  def parseUrl(url: String): String = {
+    url.split("/")(6)
+  }
 
   def createScript(url: String) = {
     val script = new PrintWriter(new File("download/script.sh" ))
-    val requete = "wget --quiet --method GET --header 'Authorization: Basic Ym91cmdlb2lzYUBlaXN0aS5ldTpBZHJpZW42Ng==' --header 'cache-control: no-cache' --output-document - " + url + " >> download/images.zip"
+    val uri = parseUrl(url)
+    val requete = "wget --quiet --method GET --header 'Authorization: Basic Ym91cmdlb2lzYUBlaXN0aS5ldTpBZHJpZW42Ng==' --header 'cache-control: no-cache' --output-document - " + url + " >> download/"+uri+".zip"
     script.write(requete)
     script.close
   }
@@ -142,18 +146,22 @@ class ImagesRequestHandler extends Actor with ActorLogging{
 
   def getListOfFiles(dir: File):List[File] = dir.listFiles.filter(_.isFile).toList
 
+  def getListOfEverything(dir: File):List[File] = dir.listFiles.toList
+
+  def getFileListName(files: List[File]) =files.map(_.getName).toList
+
   def recursiveListFiles(f: File, r: Regex): Array[File] = {
     val these = f.listFiles
     val good = these.filter(f => r.findFirstIn(f.getName).isDefined)
     good ++ these.filter(_.isDirectory).flatMap(recursiveListFiles(_,r))
   }
 
-  def getImgDataFolder() = {
-    recursiveListFiles(Paths.get("download","images").toFile,"IMG_DATA".r).head
+  def getImgDataFolder(name: String) = {
+    recursiveListFiles(Paths.get("download",name).toFile,"IMG_DATA".r).head
   }
 
-  def getImage(): File = {
-    val imgFolder = getImgDataFolder()
+  def getImage(name: String): File = {
+    val imgFolder = getImgDataFolder(name)
     val listOfFolder = getListOfDirectorys(imgFolder)
     if(listOfFolder.length > 0)
     {
@@ -176,15 +184,17 @@ class ImagesRequestHandler extends Actor with ActorLogging{
       throw new Exception(s"Unable to delete ${file.getAbsolutePath}")
   }
 
-  def downloadImage(): Future[Unit] = Future {
-    val script = "./download/script.sh" !!
 
-    val path: Path = Paths.get("download","images");
-    unzip(new FileInputStream("download/images.zip"),path)
-    println(getListOfDirectorys(Paths.get("download","images").toFile))
-    copyImage("images/image.jp2",getImage.toString)
-    deleteRecursively(Paths.get("download","images.zip").toFile)
-    deleteRecursively(Paths.get("download","images").toFile)
+
+  def downloadImage(uri: String): Future[Unit] = Future {
+    //val script = "./download/script.sh" !!
+
+    val path: Path = Paths.get("download",uri);
+    //unzip(new FileInputStream("download/"+uri+".zip"),path)
+    //println(getListOfDirectorys(Paths.get("download",uri).toFile))
+    copyImage("images/"+uri,getImage(uri).toString)
+    //deleteRecursively(Paths.get("download",uri+".zip").toFile)
+    //deleteRecursively(Paths.get("download",uri).toFile)
   }
 
 
@@ -193,14 +203,24 @@ class ImagesRequestHandler extends Actor with ActorLogging{
     case request: GetImagesRequest =>
       println("Received GetImagesRequest")
       val coords = getNeAndSw(request.coords)
-      if(coords._1._1 == "") {
+      if(coords._1._1 == "" || coords._1._2 == "" || coords._2._1 == "" || coords._2._2 == "") {
         sender() ! WrongJsonCoord("{\"status\": \"Wrong json format for coords\"}".parseJson)
       } else {
         val url = getUrlFromFirstImage(getMostRecentImage(getImagesUrl(getNeAndSw(request.coords))))
         if(url.length() > 15) {
           createScript(url)
-          downloadImage()
-          sender() ! ImagesResponse("{\"status\": \"Images found, wait for the download\",\"path\": \"images/image.jp2\"}".parseJson)
+          val uri = parseUrl(url)
+          val downloadFiles = getFileListName(getListOfEverything(Paths.get("download/").toFile))
+          val imagesFiles = getFileListName(getListOfFiles(Paths.get("images/").toFile))
+          if(imagesFiles.contains(uri)) {
+            sender() ! ImagesResponse(("{\"status\": \"Image already downloaded\",\"name\": \""+ uri +"\"}").parseJson)
+          } else if(downloadFiles.contains(uri) || downloadFiles.contains(uri+".zip")) {
+            downloadImage(uri)
+            sender() ! ImagesResponse(("{\"status\": \"Image is already downloading\",\"name\": \""+ uri +"\"}").parseJson)
+          } else {
+            downloadImage(uri)
+            sender() ! ImagesResponse(("{\"status\": \"Images found, wait for the download\",\"name\": \""+ uri +"\"}").parseJson)
+          }
         } else {
           sender() ! NoImageFound("{\"status\": \"No images found on peps\"}".parseJson)
         }
