@@ -116,7 +116,7 @@ class ImagesRequestHandler extends Actor with ActorLogging{
   }
 
   def createScript(url: String) = {
-    val script = new PrintWriter(new File("download/script.sh" ))
+    val script = new PrintWriter(new File("script/download.sh" ))
     val uri = parseUrl(url)
     val requete = "wget --quiet --method GET --header 'Authorization: Basic Ym91cmdlb2lzYUBlaXN0aS5ldTpBZHJpZW42Ng==' --header 'cache-control: no-cache' --output-document - " + url + " >> download/"+uri+".zip"
     script.write(requete)
@@ -191,7 +191,7 @@ class ImagesRequestHandler extends Actor with ActorLogging{
 
 
   def downloadImage(uri: String): Future[Unit] = Future {
-    val script = "./download/script.sh" !!
+    val script = "./script/download.sh" !!
 
     unzip(new FileInputStream("download/"+uri+".zip"),Paths.get("download",uri))
     //copyImage("images/"+uri,getImage(uri).toString)

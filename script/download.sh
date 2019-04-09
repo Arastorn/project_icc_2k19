@@ -1,0 +1,1 @@
+wget --quiet --method GET --header 'Authorization: Basic Ym91cmdlb2lzYUBlaXN0aS5ldTpBZHJpZW42Ng==' --header 'cache-control: no-cache' --output-document - https://peps.cnes.fr/resto/collections/S2ST/4d430cfc-8412-501b-8d4e-12b47c31b6ae/download >> download/4d430cfc-8412-501b-8d4e-12b47c31b6ae.zip

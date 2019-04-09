@@ -25,12 +25,14 @@ trait SaveRouter {
   def saveRequestHandler : ActorRef
 
   def getSave: Route =
-    get {
-      onSuccess(saveRequestHandler ? GetSaveRequest) {
-        case response: SaveResponse =>
-          complete(StatusCodes.OK, response.save)
-        case _ =>
-          complete(StatusCodes.InternalServerError)
+    post {
+      entity(as[JsValue]) { imageName =>
+        onSuccess(saveRequestHandler ? GetSaveRequest(imageName)) {
+          case response: SaveResponse =>
+            complete(StatusCodes.OK, response.save)
+          case _ =>
+            complete(StatusCodes.InternalServerError)
+        }
       }
     }
 
