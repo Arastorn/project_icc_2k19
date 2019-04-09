@@ -188,8 +188,6 @@ class ImagesRequestHandler extends Actor with ActorLogging{
       throw new Exception(s"Unable to delete ${file.getAbsolutePath}")
   }
 
-
-
   def downloadImage(uri: String): Future[Unit] = Future {
     val script = "./script/download.sh" !!
 

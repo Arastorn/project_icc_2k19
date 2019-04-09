@@ -37,12 +37,14 @@ trait TilesRouter {
     }
 
   def getComputeStatus: Route =
-    get {
-      onSuccess(tilesRequestHandler ? GetComputeStatusRequest) {
-        case response: ComputeStatusResponse =>
-          complete(StatusCodes.OK, response.downloadStatus)
-        case response: ComputeStatusThrowServerError =>
-          complete(StatusCodes.InternalServerError)
+       get {
+        path("status" / Segment) {
+          imgName => onSuccess(tilesRequestHandler ? GetComputeStatusRequest(imgName.toString)) {
+          case response: ComputeStatusResponse =>
+            complete(StatusCodes.OK, response.downloadStatus)
+          case response: ComputeStatusThrowServerError =>
+            complete(StatusCodes.InternalServerError)
+        }
       }
     }
 
@@ -50,11 +52,7 @@ trait TilesRouter {
     pathPrefix("tiles") {
       pathEndOrSingleSlash {
         getTiles
-      } ~ pathPrefix("status") {
-        pathEndOrSingleSlash {
-          getComputeStatus
-        }
-      }
+      } ~ getComputeStatus
     }
 
 }

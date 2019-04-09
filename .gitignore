@@ -4,3 +4,5 @@ download/*
 !download/script.sh
 images/*
 gdal2tiles-script/*
+tiles/*
+script/download.sh

@@ -10,6 +10,7 @@ lazy val root = (project in file("."))
     name := "akkaHTTP",
     libraryDependencies += scalaTest % Test
   )
+  .enablePlugins(JavaAppPackaging)
 
   libraryDependencies ++=
     {
@@ -28,6 +29,9 @@ lazy val root = (project in file("."))
       "com.typesafe.akka" %% "akka-testkit" % akkaV % Test
       )
     }
+
+packageName in Docker := "projet_icc_2k19"
+dockerExposedPorts := Seq(9001)
 
 // Uncomment the following for publishing to Sonatype.
 // See https://www.scala-sbt.org/1.x/docs/Using-Sonatype.html for more detail.

@@ -4,7 +4,8 @@ import spray.json._
 import DefaultJsonProtocol._
 
 final case class CorrectTiles(
-  path: String,
+  imgName: String,
+  tilesPath: String,
   status: String
 )
 
@@ -14,12 +15,13 @@ final case class ErrorTiles(
 )
 
 final case class ComputeStatus(
+  imgName: String,
   status: String,
   statusCode: String
 )
 
 object CorrectTiles extends DefaultJsonProtocol {
-  implicit val productFormat = jsonFormat2(CorrectTiles.apply)
+  implicit val productFormat = jsonFormat3(CorrectTiles.apply)
 }
 
 object ErrorTiles extends DefaultJsonProtocol {
@@ -27,5 +29,5 @@ object ErrorTiles extends DefaultJsonProtocol {
 }
 
 object ComputeStatus extends DefaultJsonProtocol {
-  implicit val productFormat = jsonFormat2(ComputeStatus.apply)
+  implicit val productFormat = jsonFormat3(ComputeStatus.apply)
 }
