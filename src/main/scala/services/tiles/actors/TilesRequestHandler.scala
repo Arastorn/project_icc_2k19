@@ -10,6 +10,7 @@ import scala.concurrent.duration._
 import scala.concurrent._
 import java.io._
 import java.nio.file.{Files, Path, Paths, StandardCopyOption}
+import util.Try
 
 import services.tiles.models._
 import services.tiles.messages.TilesMessages._
@@ -22,7 +23,9 @@ class TilesRequestHandler extends Actor with ActorLogging {
 
   private def fileRemove(path: String): Unit = {
     val file = new File(path)
-    file.delete()
+    if (file.exists()) {
+      file.delete()
+    }
   }
 
   private def fileExists(path: String): Boolean = {
@@ -36,9 +39,20 @@ class TilesRequestHandler extends Actor with ActorLogging {
   }
 
   private def isAlreadyTiled(imgName: String): Boolean = {
-    val file = s"tiles/${imgName}"
+    val file = s"images/${imgName}/tiles"
     fileExists(file) && isDirectory(file)
   }
+
+  private def deleteRecursively(file: File): Unit = {
+    if (file.isDirectory)
+      file.listFiles.foreach(deleteRecursively)
+    if (file.exists && !file.delete)
+      throw new Exception(s"Unable to delete ${file.getAbsolutePath}")
+  }
+
+  private def rename(oldPath: String, newPath: String): Boolean = Try(new File(oldPath).renameTo(new File(newPath))).getOrElse(false)
+
+  private def getListOfDirectories(dir: File): List[File] = dir.listFiles.filter(_.isDirectory).toList
 
   private def moveToPermanentPlace(currentPath: String, newPath: String): Unit = {
     val path = Files.move(
@@ -46,7 +60,7 @@ class TilesRequestHandler extends Actor with ActorLogging {
       Paths.get(newPath),
       StandardCopyOption.REPLACE_EXISTING
     )
-    fileRemove(currentPath)
+    deleteRecursively(new File(currentPath))
   }
 
   def getGDAL2TILES(father: ActorRef): Unit = {
@@ -62,31 +76,38 @@ class TilesRequestHandler extends Actor with ActorLogging {
   private def launchGDAL2TILESCalculation(pathImage: String, imgName: String): Future[Unit] = Future {
     val stdout = new StringBuilder
     val stderr = new StringBuilder
-    val tmp = s"tiles/tmp/tmp_${imgName}"
+    val tmp = s"images/${imgName}/tmp_tiles"
     "python gdal2tiles-script/gdal2tiles.py " + pathImage + " " + tmp ! ProcessLogger(stdout append _, stderr append _)
     if (fileExists(tmp)) {
-      moveToPermanentPlace(tmp,s"tiles/${imgName}")
+      rename(tmp,s"images/${imgName}/tiles")
     }
   }
 
   private def getTCIPathFromIMGData(imgDataPath: File, accuracy: Int): String = {
-    def getListOfDirectories(dir: File): List[File] = dir.listFiles.filter(_.isDirectory).toList
     def getListOfFiles(dir: File):List[File] = dir.listFiles.filter(_.isFile).toList
     val listOfDirectoriesAccuracies = getListOfDirectories(imgDataPath)
     if (listOfDirectoriesAccuracies.length > 0) {
       getListOfFiles(listOfDirectoriesAccuracies.filter(f => accuracy.toString.r.findFirstIn(f.getName).isDefined).head).filter(f => "TCI".r.findFirstIn(f.getName).isDefined).head.toString
     } else {
-      ""
+      getListOfFiles(imgDataPath).filter(f => "TCI".r.findFirstIn(f.getName).isDefined).head.toString
     }
   }
 
-  private def getTCIPath(pathFull: String, accuracy: Int) = {
+  private def cleanPEPSImageDir(pathFull: String) = {
+    val listOfDirectories = getListOfDirectories(new File(pathFull))
+    listOfDirectories.foreach(deleteRecursively)
+  }
+
+  private def getTCIPath(pathFull: String, accuracy: Int): String = {
     var path = "";
-    //Same architecture
     val mandatoryPath = pathFull + "/IMG_DATA"
     if (fileExists(mandatoryPath) && isDirectory(mandatoryPath)) {
       val imgDataDir = new File(mandatoryPath)
-      path = getTCIPathFromIMGData(imgDataDir,accuracy)
+      val originPath = getTCIPathFromIMGData(imgDataDir,accuracy)
+      val filename = originPath.split("/").toList.last
+      path = s"${pathFull}/${filename}"
+      moveToPermanentPlace(originPath,path)
+      cleanPEPSImageDir(pathFull)
     }
     path
   }
@@ -100,10 +121,10 @@ class TilesRequestHandler extends Actor with ActorLogging {
         val pathTCI = getTCIPath(pathfull, 10)
         if (pathTCI.nonEmpty) {
           if (isAlreadyTiled(name)) {
-            father ! TilesResponse(CorrectTiles(name, s"tiles/${name}", s"Tiles have been already computed for this image").toJson)
+            father ! TilesResponse(CorrectTiles(name, s"images/${name}/tiles", s"Tiles have been already computed for this image").toJson)
           } else {
             launchGDAL2TILESCalculation(pathTCI, name)
-            father ! TilesResponse(CorrectTiles(name, s"tiles/${name}", s"Currently computing on the image at path ${pathTCI}").toJson)
+            father ! TilesResponse(CorrectTiles(name, s"images/${name}/tiles", s"Currently computing on the image at path ${pathTCI}").toJson)
           }
         } else {
           father ! TilesResponse(ErrorTiles(pathfull, "This path is not poiting a directory that contains available data. Please specifiy a correct image name ...").toJson)
@@ -117,12 +138,12 @@ class TilesRequestHandler extends Actor with ActorLogging {
   }
 
   def checkDownloadStatus(imgName: String, father: ActorRef) = {
-    if (fileExists(s"tiles/${imgName}") && isDirectory(s"tiles/${imgName}")) {
-      father ! ComputeStatusResponse(ComputeStatus(imgName,"Tiles are totally computed !","TOTALLY_COMPUTED").toJson)
-    } else if (fileExists(s"tiles/tmp/tmp_${imgName}")) {
+    if (fileExists(s"images/${imgName}/tmp_tiles") && isDirectory(s"images/${imgName}/tmp_tiles")) {
       father ! ComputeStatusResponse(ComputeStatus(imgName,"Tiles are currently being computed","CURRENTLY_BEING_COMPUTED").toJson)
+    } else if (fileExists(s"images/${imgName}/tiles") && isDirectory(s"images/${imgName}/tiles")) {
+      father ! ComputeStatusResponse(ComputeStatus(imgName,"Tiles are totally computed !","TOTALLY_COMPUTED").toJson)
     } else {
-      father ! ComputeStatusResponse(ComputeStatus(imgName,"The tiles for this image do not exists","IMAGE_NOT_TILED").toJson)
+      father ! ComputeStatusResponse(ComputeStatus(imgName,"This image is not referenced","IMAGE_NOT_REFERENCED").toJson)
     }
   }
 
