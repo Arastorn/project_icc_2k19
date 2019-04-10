@@ -24,20 +24,22 @@ trait MetadataRouter {
 
   def metadataRequestHandler : ActorRef
 
-  def getMetadata: Route =
-    get {
-      onSuccess(metadataRequestHandler ? GetMetadataRequest) {
-        case response: MetadataResponse =>
-          complete(StatusCodes.OK, response.metadata)
-        case _ =>
-          complete(StatusCodes.InternalServerError)
+  def putMetadata: Route =
+    post {
+      entity(as[JsValue]) {
+        imgJson => onSuccess(metadataRequestHandler ? PutImgMetadataToElasticSearchRequest(imgJson)) {
+          case response: MetadataResponse =>
+            complete(StatusCodes.OK, response.status)
+          case response: MetadataThrowServerError =>
+            complete(StatusCodes.InternalServerError)
+        }
       }
     }
 
   def metadata: Route =
     pathPrefix("metadata") { // the products
       pathEndOrSingleSlash { // /product or /product/
-        getMetadata
+        putMetadata
       }
     }
 }

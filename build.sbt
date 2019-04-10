@@ -26,7 +26,8 @@ lazy val root = (project in file("."))
       "com.github.swagger-akka-http" %% "swagger-akka-http" % "1.0.0",
       "org.scalaj" %% "scalaj-http" % "2.4.1",
       "org.scalatest" %% "scalatest" % "3.0.5" % "test",
-      "com.typesafe.akka" %% "akka-testkit" % akkaV % Test
+      "com.typesafe.akka" %% "akka-testkit" % akkaV % Test,
+      "org.scala-lang.modules" %% "scala-xml" % "1.1.1"
       )
     }
 
