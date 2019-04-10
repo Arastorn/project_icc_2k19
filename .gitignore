@@ -6,3 +6,4 @@ images/*
 gdal2tiles-script/*
 tiles/*
 script/download.sh
+tmp/*

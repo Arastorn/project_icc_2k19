@@ -28,8 +28,12 @@ trait SaveRouter {
     post {
       entity(as[JsValue]) { imageName =>
         onSuccess(saveRequestHandler ? GetSaveRequest(imageName)) {
-          case response: SaveResponse =>
-            complete(StatusCodes.OK, response.save)
+          case response: SaveUploading =>
+            complete(StatusCodes.Accepted, response.json)
+          case response: SaveUploaded =>
+            complete(StatusCodes.OK, response.json)
+          case response: WrongJson =>
+            complete(StatusCodes.BadRequest, response.json)
           case _ =>
             complete(StatusCodes.InternalServerError)
         }
