@@ -11,6 +11,13 @@ final case class PostMetadataRequestStatus(
   metadata: JsValue
 )
 
+final case class PostMetadataRequestErrorElasticStatus(
+  imgName: String,
+  status: String,
+  statusCode: String,
+  elasticSearchError: JsValue
+)
+
 final case class PostMetadataRequestErrorStatus(
   imgName: String,
   status: String,
@@ -75,6 +82,10 @@ final case class Metadata(
 
 object PostMetadataRequestStatus extends DefaultJsonProtocol {
   implicit val productFormat = jsonFormat5(PostMetadataRequestStatus.apply)
+}
+
+object PostMetadataRequestErrorElasticStatus extends DefaultJsonProtocol {
+  implicit val productFormat = jsonFormat4(PostMetadataRequestErrorElasticStatus.apply)
 }
 
 object PostMetadataRequestErrorStatus extends DefaultJsonProtocol {

@@ -74,6 +74,12 @@ class MetadataRequestHandler extends Actor with ActorLogging{
     )
   ).toJson
 
+  private def elasticAdditionSuccess(body: JsValue): Boolean = {
+    val resValue = body.asJsObject.getFields("result").head.toString.dropRight(1).substring(1)
+    println(resValue)
+    resValue == "updated" || resValue == "created"
+  }
+
   def postElasticMetadata(imgJson: JsValue, father: ActorRef): Unit = {
     val elasticRoute = "http://localhost:9200"
     val name = prepareData(imgJson)("name")
@@ -84,7 +90,11 @@ class MetadataRequestHandler extends Actor with ActorLogging{
         if (fileExists(pathToTheMetadata)) {
           val metadata = getMetadata(readXML(pathToTheMetadata))
           val body = putToElasticSearch(name,elasticRoute,metadata)
-          father ! MetadataResponse(PostMetadataRequestStatus(name, s"Metadata for image ${name} has been reached, it has been added to elasticSearch at route ${elasticRoute}", "SUCCESS", body, metadata).toJson)
+          if (elasticAdditionSuccess(body)) {
+            father ! MetadataResponse(PostMetadataRequestStatus(name, s"Metadata for image ${name} has been reached, it has been added to elasticSearch at route ${elasticRoute}", "SUCCESS", body, metadata).toJson)
+          } else {
+            father ! MetadataResponse(PostMetadataRequestErrorElasticStatus(name, s"Metadata for image ${name} has been reached, but addition to elastic failed at ${elasticRoute}", "SUCCESS", body).toJson)
+          }
         } else {
           father ! MetadataResponse(PostMetadataRequestErrorStatus(name, s"${pathToTheMetadata} is not known, try to download a correct image before using this service", "IMAGE_WITHOUT_METADATA").toJson)
         }
