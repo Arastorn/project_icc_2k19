@@ -6,7 +6,9 @@ import DefaultJsonProtocol._
 final case class PostMetadataRequestStatus(
   imgName: String,
   status: String,
-  statusCode: String
+  statusCode: String,
+  elasticSearchInsertionResult: JsValue,
+  metadata: JsValue
 )
 
 final case class PostMetadataRequestErrorStatus(
@@ -72,7 +74,7 @@ final case class Metadata(
 }
 
 object PostMetadataRequestStatus extends DefaultJsonProtocol {
-  implicit val productFormat = jsonFormat3(PostMetadataRequestStatus.apply)
+  implicit val productFormat = jsonFormat5(PostMetadataRequestStatus.apply)
 }
 
 object PostMetadataRequestErrorStatus extends DefaultJsonProtocol {

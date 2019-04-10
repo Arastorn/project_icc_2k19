@@ -49,7 +49,12 @@ class MetadataRequestHandler extends Actor with ActorLogging{
     XML.loadFile(pathXML)
   }
 
-  private def getMetadata(xml: Elem): Metadata = Metadata(
+  private def putToElasticSearch(imgName: String, elasticRoute: String, jsonMetadata: JsValue): JsValue = {
+    val request = Http(s"${elasticRoute}/images/metadata/${imgName}").header("content-type", "application/json").postData(s"""${jsonMetadata.toString}""")
+    request.asString.body.parseJson.toJson
+  }
+
+  private def getMetadata(xml: Elem): JsValue = Metadata(
     GeneralInfoMetadata(
       (xml \\ "Level-1C_Tile_ID" \\ "General_Info" \\ "TILE_ID").text.toString,
       (xml \\ "Level-1C_Tile_ID" \\ "General_Info" \\ "DATASTRIP_ID").text.toString,
@@ -67,20 +72,19 @@ class MetadataRequestHandler extends Actor with ActorLogging{
       (xml \\ "Level-1C_Tile_ID" \\ "Quality_Indicators_Info" \\ "Image_Content_QI" \\ "CLOUDY_PIXEL_PERCENTAGE").text.toDouble,
       (xml \\ "Level-1C_Tile_ID" \\ "Quality_Indicators_Info" \\ "Image_Content_QI" \\ "DEGRADED_MSI_DATA_PERCENTAGE").text.toDouble
     )
-  )
+  ).toJson
 
   def postElasticMetadata(imgJson: JsValue, father: ActorRef): Unit = {
-    val defaultElasticRoute = "http://localhost:9200"
+    val elasticRoute = "http://localhost:9200"
     val name = prepareData(imgJson)("name")
     val pathToTheImage = "images/" + name
     val pathToTheMetadata = pathToTheImage + "/MTD_TL.xml"
-    if (isElasticUp(defaultElasticRoute)) {
+    if (isElasticUp(elasticRoute)) {
       if (fileExists(pathToTheImage) && isDirectory(pathToTheImage)) {
         if (fileExists(pathToTheMetadata)) {
-          val xml = readXML(pathToTheMetadata)
-          val metadata = getMetadata(xml)
-          //father ! MetadataResponse(PostMetadataRequestStatus(name, "SUCCESS", "SUCCESS").toJson)
-          father ! MetadataResponse(metadata.toJson)
+          val metadata = getMetadata(readXML(pathToTheMetadata))
+          val body = putToElasticSearch(name,elasticRoute,metadata)
+          father ! MetadataResponse(PostMetadataRequestStatus(name, s"Metadata for image ${name} has been reached, it has been added to elasticSearch at route ${elasticRoute}", "SUCCESS", body, metadata).toJson)
         } else {
           father ! MetadataResponse(PostMetadataRequestErrorStatus(name, s"${pathToTheMetadata} is not known, try to download a correct image before using this service", "IMAGE_WITHOUT_METADATA").toJson)
         }

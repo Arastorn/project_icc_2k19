@@ -20,7 +20,7 @@ import services.metadata.models._
 
 trait MetadataRouter {
 
-  implicit val timeout: Timeout = 5.seconds
+  implicit val timeout: Timeout = 10.seconds
 
   def metadataRequestHandler : ActorRef
 
