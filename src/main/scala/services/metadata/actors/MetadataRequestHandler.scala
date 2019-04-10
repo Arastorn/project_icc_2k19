@@ -76,7 +76,6 @@ class MetadataRequestHandler extends Actor with ActorLogging{
 
   private def elasticAdditionSuccess(body: JsValue): Boolean = {
     val resValue = body.asJsObject.getFields("result").head.toString.dropRight(1).substring(1)
-    println(resValue)
     resValue == "updated" || resValue == "created"
   }
 
