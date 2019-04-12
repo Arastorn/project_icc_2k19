@@ -1,6 +1,6 @@
 package services.images.actors
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorRef, ActorLogging, Props}
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -18,6 +18,7 @@ import java.nio.file.{Path,Paths, Files, StandardCopyOption}
 import java.util.zip.ZipInputStream
 import sys.process._
 import scala.util.matching.Regex
+import scala.collection.mutable.ListBuffer
 
 
 import services.images.models._
@@ -25,6 +26,7 @@ import services.images.messages.ImagesMessages._
 
 class ImagesRequestHandler extends Actor with ActorLogging{
 
+  // Récupération des coordonnées
   def getCoordsFromSw(jsonCoords: JsValue): (String,String) = {
     jsonCoords.asJsObject.getFields("sw") match {
       case Seq(sw) =>
@@ -32,6 +34,7 @@ class ImagesRequestHandler extends Actor with ActorLogging{
       case _ => ("","")
     }
   }
+
 
   def getCoordsFromNe(jsonCoords: JsValue): (String,String) = {
     jsonCoords.asJsObject.getFields("ne") match {
@@ -41,6 +44,7 @@ class ImagesRequestHandler extends Actor with ActorLogging{
     }
   }
 
+
   def getItemFromJsKey(json: JsValue, key: String): JsValue = {
     json.asJsObject.getFields(key) match {
       case Seq(item) =>
@@ -49,9 +53,28 @@ class ImagesRequestHandler extends Actor with ActorLogging{
     }
   }
 
+
   def parseBoundingBox(jsonCoords: JsValue): JsValue = {
     getItemFromJsKey(jsonCoords,"boundingbox")
   }
+
+  def getStringFromJsKey(json: JsValue, key: String): String = {
+    json.asJsObject.getFields(key) match {
+      case Seq(JsString(string)) =>
+        string
+      case _ => ""
+    }
+  }
+
+  def getStartDate(json: JsValue): String = {
+    getStringFromJsKey(getItemFromJsKey(json,"date"),"start").toString
+  }
+
+
+  def getEndDate(json: JsValue): String = {
+    getStringFromJsKey(getItemFromJsKey(json,"date"),"end").toString
+  }
+
 
   def getDate(): String = {
     val format = new SimpleDateFormat("yyyy-MM-dd")
@@ -60,9 +83,11 @@ class ImagesRequestHandler extends Actor with ActorLogging{
     format.format(date.getTime())
   }
 
-  def sendRequestOnPeps(ne:(String,String), sw:(String,String)): JsValue = {
-    Http("https://peps.cnes.fr/resto/api/collections/S2ST/search.json").param("box", ne._1 + "," + ne._2 + "," + sw._1 + "," + sw._2).param("startDate",getDate()).header("Accept", "application/json").asString.body.parseJson
+
+  def sendRequestOnPeps(ne:(String,String), sw:(String,String), date:(String,String)): JsValue = {
+    Http("https://peps.cnes.fr/resto/api/collections/S2ST/search.json").param("box", ne._1 + "," + ne._2 + "," + sw._1 + "," + sw._2).param("startDate",date._1).param("completionDate",date._2).header("Accept", "application/json").asString.body.parseJson
   }
+
 
   def getNeAndSw(jsonCoords: JsValue) : ((String,String),(String,String)) = {
     val coords = parseBoundingBox(jsonCoords)
@@ -71,10 +96,13 @@ class ImagesRequestHandler extends Actor with ActorLogging{
     (ne,sw)
   }
 
-  def getImagesUrl(coords: ((String,String),(String,String))): JsValue = {
-    sendRequestOnPeps(coords._1,coords._2)
+
+  def getImagesUrl(coords: ((String,String),(String,String)), date:(String,String)): JsValue = {
+    sendRequestOnPeps(coords._1,coords._2,date)
   }
 
+
+  // Récupération des URL
   def getMostRecentImage(jsonFromPeps: JsValue): JsValue = {
     jsonFromPeps.asJsObject.getFields("features") match {
       case Seq(JsArray(features)) =>
@@ -84,17 +112,29 @@ class ImagesRequestHandler extends Actor with ActorLogging{
   }
 
 
+  def getImagesFeatures(jsonFromPeps: JsValue): Vector[JsValue] = {
+    jsonFromPeps.asJsObject.getFields("features") match {
+      case Seq(JsArray(features)) =>
+        features
+      case _ => Vector[JsValue]()
+    }
+  }
+
+
   def getProperties(jsonImage: JsValue): JsValue = {
     getItemFromJsKey(jsonImage,"properties")
   }
+
 
   def getService(jsonProperties: JsValue): JsValue = {
     getItemFromJsKey(jsonProperties, "services")
   }
 
+
   def getDownload(jsonService: JsValue): JsValue = {
     getItemFromJsKey(jsonService,"download")
   }
+
 
   def getUrl(jsonDownload: JsValue): String = {
     jsonDownload.asJsObject.getFields("url") match {
@@ -104,25 +144,48 @@ class ImagesRequestHandler extends Actor with ActorLogging{
     }
   }
 
-  def getUrlFromFirstImage(jsonArray: JsValue) = {
+
+  def getUrlFromFeature(jsonArray: JsValue) = {
     val properties = getProperties(jsonArray)
     val service = getService(properties)
     val download = getDownload(service)
     getUrl(download)
   }
 
+
+  def getUrlListFromFeatures(jsonVector: Vector[JsValue]) = {
+    val list = new ListBuffer[String]()
+    for(feature <- jsonVector) {
+      list += getUrlFromFeature(feature)
+    }
+    list.toList
+  }
+
+
   def parseUrl(url: String): String = {
     url.split("/")(6)
   }
 
-  def createScript(url: String) = {
+
+  def listOfUrlToImagesName(list: List[String]) = {
+    val imagesNameList = new ListBuffer[String]()
+    for(url <- list) {
+      imagesNameList += parseUrl(url)
+    }
+    imagesNameList.toList
+  }
+
+
+  // Download images
+  def createScript(imageName: String) = {
     val script = new PrintWriter(new File("script/download.sh" ))
-    val uri = parseUrl(url)
-    val requete = "wget --quiet --method GET --header 'Authorization: Basic Ym91cmdlb2lzYUBlaXN0aS5ldTpBZHJpZW42Ng==' --header 'cache-control: no-cache' --output-document - " + url + " >> download/"+uri+".zip"
+    val requete = "wget --quiet --method GET --header 'Authorization: Basic Ym91cmdlb2lzYUBlaXN0aS5ldTpBZHJpZW42Ng==' --header 'cache-control: no-cache' --output-document - https://peps.cnes.fr/resto/collections/S2ST/"+imageName+"/download >> download/"+imageName+".zip"
     script.write(requete)
     script.close
   }
 
+
+  // Dézippage
   def unzip(zipFile: InputStream, destination: Path): Unit = {
     val zis = new ZipInputStream(zipFile)
     Stream.continually(zis.getNextEntry).takeWhile(_ != null).foreach { file =>
@@ -142,13 +205,18 @@ class ImagesRequestHandler extends Actor with ActorLogging{
   }
 
 
+  // déplacement de download vers Image
   def getListOfDirectorys(dir: File):List[File] = dir.listFiles.filter(_.isDirectory).toList
+
 
   def getListOfFiles(dir: File):List[File] = dir.listFiles.filter(_.isFile).toList
 
+
   def getListOfEverything(dir: File):List[File] = dir.listFiles.toList
 
+
   def getFileListName(files: List[File]) =files.map(_.getName).toList
+
 
   def recursiveListFiles(f: File, r: Regex): Array[File] = {
     val these = f.listFiles
@@ -156,30 +224,50 @@ class ImagesRequestHandler extends Actor with ActorLogging{
     good ++ these.filter(_.isDirectory).flatMap(recursiveListFiles(_,r))
   }
 
+
   def getImgDataFolder(name: String) = {
-    recursiveListFiles(Paths.get("download",name).toFile,"GRANULE".r).head
+    recursiveListFiles(Paths.get("download",name).toFile,"IMG_DATA".r).head
   }
 
-  def getImage(name: String): Path = {
+
+  def getMtdFile(name: String): String = {
+    recursiveListFiles(Paths.get("download",name).toFile,"MTD_TL".r).head.toString
+  }
+
+
+  def getImageTciFile(name: String): String = {
     val imgFolder = getImgDataFolder(name)
-    getListOfDirectorys(imgFolder).head.toPath
-    /*if(listOfFolder.length > 0)
+    val listOfFolder = getListOfDirectorys(imgFolder)
+    if(listOfFolder.length > 0)
     {
-      getListOfFiles(listOfFolder.filter( f => "10".r.findFirstIn(f.getName).isDefined).head).filter(f => "TCI".r.findFirstIn(f.getName).isDefined).head
+      getListOfFiles(listOfFolder.filter( f => "10".r.findFirstIn(f.getName).isDefined).head).filter(f => "TCI".r.findFirstIn(f.getName).isDefined).head.toString
     }
     else
     {
-      getListOfFiles(imgFolder).filter(f => "TCI".r.findFirstIn(f.getName).isDefined).head
-    }*/
+      getListOfFiles(imgFolder).filter(f => "TCI".r.findFirstIn(f.getName).isDefined).head.toString
+    }
   }
 
-  def copyImage(dest: String, src: String) = {
+
+  def copy(dest: String, src: String) = {
     new FileOutputStream(dest) getChannel() transferFrom( new FileInputStream(src) getChannel, 0, Long.MaxValue )
   }
+
+
+  def copyImage(name: String) = {
+    val imageFile = new File("images/"+name);
+    if(!imageFile.isDirectory){
+      imageFile.mkdir();
+    }
+    copy(imageFile.toString+"/MTD_TL.xml",getMtdFile(name))
+    copy(imageFile.toString+"/"+name+"_TCI.jp2",getImageTciFile(name))
+  }
+
 
   def moveImage(dest: Path, src: Path)= {
     Files.move(src, dest, StandardCopyOption.REPLACE_EXISTING)
   }
+
 
   def deleteRecursively(file: File): Unit = {
     if (file.isDirectory)
@@ -188,14 +276,104 @@ class ImagesRequestHandler extends Actor with ActorLogging{
       throw new Exception(s"Unable to delete ${file.getAbsolutePath}")
   }
 
-  def downloadImage(uri: String): Future[Unit] = Future {
+
+  def getListOfNotDownloaded(imageList: List[String]) = {
+    val imagesFiles = getFileListName(getListOfEverything(Paths.get("images/").toFile))
+    val downloadFiles = getFileListName(getListOfEverything(Paths.get("download/").toFile))
+    val listNotDownload = new ListBuffer[String]()
+    for(image <- imageList){
+      if(!(imagesFiles.contains(image)) && !(downloadFiles.contains(image)) && !(downloadFiles.contains(image+".zip"))){
+        listNotDownload += image
+      }
+    }
+    listNotDownload.toList
+  }
+
+
+  def getListDownloading(imageList: List[String]) = {
+    val downloadFiles = getFileListName(getListOfEverything(Paths.get("download/").toFile))
+    val listDownloading = new ListBuffer[String]()
+    for(image <- imageList){
+      if(downloadFiles.contains(image) || downloadFiles.contains(image+".zip")){
+        listDownloading += image
+      }
+    }
+    listDownloading.toList
+  }
+
+
+  def getListDownloaded(imageList: List[String]) = {
+    val imagesFiles = getFileListName(getListOfEverything(Paths.get("images/").toFile))
+    val listDownloaded = new ListBuffer[String]()
+    for(image <- imageList){
+      if(imagesFiles.contains(image)){
+        listDownloaded += image
+      }
+    }
+    listDownloaded.toList
+  }
+
+
+  def downloadImage(uri: String) = {
     val script = "./script/download.sh" !!
 
     unzip(new FileInputStream("download/"+uri+".zip"),Paths.get("download",uri))
-    //copyImage("images/"+uri,getImage(uri).toString)
-    moveImage(Paths.get("images",uri),getImage(uri))
+    copyImage(uri)
     deleteRecursively(Paths.get("download",uri+".zip").toFile)
     deleteRecursively(Paths.get("download",uri).toFile)
+  }
+
+
+  def downloadAllImages(listNotDownload: List[String]): Future[Unit] = Future {
+    for(image <- listNotDownload) {
+      createScript(image)
+      downloadImage(image)
+    }
+  }
+
+
+  // Responses
+  def imageDownloadResponse(images: List[String], father: ActorRef) = {
+    val imagesNotDownloaded = getListOfNotDownloaded(images)
+    val imagesDownloading = getListDownloading(images)
+    val imagesDownloaded = getListDownloaded(images)
+    if(imagesDownloading.length == 0 && imagesNotDownloaded.length == 0) {
+      father ! ImagesResponse(ImageFound("Image already downloaded",imagesDownloading,imagesNotDownloaded,imagesDownloaded).toJson)
+    } else if(imagesDownloading.length > 0) {
+      father ! ImagesResponse(ImageFound("Image are already downloading",imagesDownloading,imagesNotDownloaded,imagesDownloaded).toJson)
+    } else {
+      downloadAllImages(imagesNotDownloaded)
+      father ! ImagesResponse(ImageFound("Images Found, starting the download",imagesDownloading,imagesNotDownloaded,imagesDownloaded).toJson)
+    }
+  }
+
+
+  def imageResponse(json: JsValue, father: ActorRef) = {
+    val coords = getNeAndSw(json)
+    val date = (getStartDate(json), getEndDate(json))
+    val imagesNameList = listOfUrlToImagesName(getUrlListFromFeatures(getImagesFeatures(getImagesUrl(coords,date))))
+    if(imagesNameList.length > 0) {
+      imageDownloadResponse(imagesNameList,father)
+    } else {
+      father ! NoImageFound("{\"status\": \"No images found on peps\"}".parseJson)
+    }
+  }
+
+
+  def getImageResponse(json: JsValue,father: ActorRef) = {
+    val coords = getNeAndSw(json)
+    val date = (getStartDate(json), getEndDate(json))
+    if(coords._1._1 == "" || coords._1._2 == "" || coords._2._1 == "" || coords._2._2 == "") {
+      father ! WrongJsonCoord(WrongCoords("No coords found","BAD_REQUEST").toJson)
+    }
+    else if(date._1.length() == 0 || date._2.length == 0)
+    {
+      father ! WrongJsonCoord(WrongCoords("No start date or end date found","BAD_REQUEST").toJson)
+    }
+    else
+    {
+      imageResponse(json,father)
+    }
   }
 
 
@@ -203,28 +381,7 @@ class ImagesRequestHandler extends Actor with ActorLogging{
 
     case request: GetImagesRequest =>
       println("Received GetImagesRequest")
-      val coords = getNeAndSw(request.coords)
-      if(coords._1._1 == "" || coords._1._2 == "" || coords._2._1 == "" || coords._2._2 == "") {
-        sender() ! WrongJsonCoord("{\"status\": \"Wrong json format for coords\"}".parseJson)
-      } else {
-        val url = getUrlFromFirstImage(getMostRecentImage(getImagesUrl(getNeAndSw(request.coords))))
-        if(url.length() > 15) {
-          createScript(url)
-          val uri = parseUrl(url)
-          val downloadFiles = getFileListName(getListOfEverything(Paths.get("download/").toFile))
-          val imagesFiles = getFileListName(getListOfEverything(Paths.get("images/").toFile))
-          if(imagesFiles.contains(uri)) {
-            sender() ! ImagesResponse(("{\"status\": \"Image already downloaded\",\"name\": \""+ uri +"\"}").parseJson)
-          } else if(downloadFiles.contains(uri) || downloadFiles.contains(uri+".zip")) {
-            sender() ! ImagesResponse(("{\"status\": \"Image is already downloading\",\"name\": \""+ uri +"\"}").parseJson)
-          } else {
-            downloadImage(uri)
-            sender() ! ImagesResponse(("{\"status\": \"Images found, wait for the download\",\"name\": \""+ uri +"\"}").parseJson)
-          }
-        } else {
-          sender() ! NoImageFound("{\"status\": \"No images found on peps\"}".parseJson)
-        }
-      }
+      getImageResponse(request.coords,sender())
   }
 }
 
