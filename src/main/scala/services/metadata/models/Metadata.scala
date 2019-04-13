@@ -50,11 +50,13 @@ final case class GeneralInfoMetadata(
 
 final case class GeometricInfoMetadata(
   horizontal_cs_name: String,
-  horizontal_cs_code: String
+  horizontal_cs_code: String,
+  bounding_box: BoundingBox
 ) {
   def toJson = JsObject(
     "horizontal_cs_name" -> JsString(horizontal_cs_name),
-    "horizontal_cs_code" -> JsString(horizontal_cs_code)
+    "horizontal_cs_code" -> JsString(horizontal_cs_code),
+    "bounding_box" -> bounding_box.toJson
   )
 }
 
@@ -75,6 +77,20 @@ final case class Metadata(
     "general_info" -> general_info.toJson,
     "geometric_info" -> geometric_info.toJson,
     "quality_indicators_info" -> quality_indicators_info.toJson
+  )
+}
+
+final case class BoundingBox(
+  minx: Double,
+  miny: Double,
+  maxx: Double,
+  maxy: Double
+) {
+  def toJson = JsObject(
+    "minx" -> JsNumber(minx),
+    "miny" -> JsNumber(miny),
+    "maxx" -> JsNumber(maxx),
+    "maxy" -> JsNumber(maxy)
   )
 }
 

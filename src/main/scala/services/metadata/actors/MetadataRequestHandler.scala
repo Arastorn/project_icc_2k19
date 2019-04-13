@@ -55,7 +55,7 @@ class MetadataRequestHandler extends Actor with ActorLogging{
     request.asString.body.parseJson.toJson
   }
 
-  private def getMetadata(xml: Elem): JsValue = {
+  private def getMetadata(xml: Elem, xmlTiles: Elem): JsValue = {
     val firstChildNode = xml.collect{
       case el: Elem => el.label
     }.headOption.getOrElse("").toString
@@ -76,7 +76,13 @@ class MetadataRequestHandler extends Actor with ActorLogging{
       ),
       GeometricInfoMetadata(
         (xml \\ firstChildNode \\ "Geometric_Info" \\ "Tile_Geocoding" \\ "HORIZONTAL_CS_NAME").text.toString,
-        (xml \\ firstChildNode \\ "Geometric_Info" \\ "Tile_Geocoding" \\ "HORIZONTAL_CS_CODE").text.toString
+        (xml \\ firstChildNode \\ "Geometric_Info" \\ "Tile_Geocoding" \\ "HORIZONTAL_CS_CODE").text.toString,
+        BoundingBox(
+          (xmlTiles \\ "TileMap" \\ "BoundingBox" \ "@minx").text.toDouble,
+          (xmlTiles \\ "TileMap" \\ "BoundingBox" \ "@miny").text.toDouble,
+          (xmlTiles \\ "TileMap" \\ "BoundingBox" \ "@maxx").text.toDouble,
+          (xmlTiles \\ "TileMap" \\ "BoundingBox" \ "@maxy").text.toDouble
+        )
       ),
       QualityIndicatorsInfoMetadata(
         qualityIndicatorsInfoMetadataMap
@@ -98,22 +104,27 @@ class MetadataRequestHandler extends Actor with ActorLogging{
        elasticRoute = "http://" + ip + ":9200"
     } else {
        elasticRoute = "http://localhost:9200"
-    }        
+    }
     val name = prepareData(imgJson)("name")
     val pathToTheImage = "images/" + name
     val pathToTheMetadata = pathToTheImage + "/MTD_TL.xml"
+    val pathToTheTileMetadata = pathToTheImage + "/tiles/tilemapresource.xml"
     if (isElasticUp(elasticRoute)) {
       if (fileExists(pathToTheImage) && isDirectory(pathToTheImage)) {
         if (fileExists(pathToTheMetadata)) {
-          val metadata = getMetadata(readXML(pathToTheMetadata))
-          val body = putToElasticSearch(name,elasticRoute,metadata)
-          if (elasticAdditionSuccess(body)) {
-            father ! MetadataResponse(PostMetadataRequestStatus(name, s"Metadata for image ${name} has been reached, it has been added to elasticSearch at route ${elasticRoute}", "SUCCESS", body, metadata).toJson)
+          if (fileExists(pathToTheTileMetadata)) {
+            val metadata = getMetadata(readXML(pathToTheMetadata), readXML(pathToTheTileMetadata))
+            val body = putToElasticSearch(name,elasticRoute,metadata)
+            if (elasticAdditionSuccess(body)) {
+              father ! MetadataResponse(PostMetadataRequestStatus(name, s"Metadata for image ${name} has been reached, it has been added to elasticSearch at route ${elasticRoute}", "SUCCESS", body, metadata).toJson)
+            } else {
+              father ! MetadataResponse(PostMetadataRequestErrorElasticStatus(name, s"Metadata for image ${name} has been reached, but addition to elastic failed at ${elasticRoute}", "SUCCESS", body).toJson)
+            }
           } else {
-            father ! MetadataResponse(PostMetadataRequestErrorElasticStatus(name, s"Metadata for image ${name} has been reached, but addition to elastic failed at ${elasticRoute}", "SUCCESS", body).toJson)
+            father ! MetadataResponse(PostMetadataRequestErrorStatus(name, s"${pathToTheTileMetadata} is not known, tile the image at ${pathToTheImage} before using this service", "IMAGE_WITHOUT_METADATA").toJson)
           }
         } else {
-          father ! MetadataResponse(PostMetadataRequestErrorStatus(name, s"${pathToTheMetadata} is not known, try to download a correct image before using this service", "IMAGE_WITHOUT_METADATA").toJson)
+          father ! MetadataResponse(PostMetadataRequestErrorStatus(name, s"${pathToTheMetadata} is not known, try to download a correct image it before using this service", "IMAGE_WITHOUT_METADATA").toJson)
         }
       } else {
         father ! MetadataResponse(PostMetadataRequestErrorStatus(name, s"${pathToTheImage} is not known, try to download a correct image before using this service", "IMAGE_NOT_REFERENCED").toJson)
