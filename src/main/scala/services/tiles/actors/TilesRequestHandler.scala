@@ -83,31 +83,19 @@ class TilesRequestHandler extends Actor with ActorLogging {
     }
   }
 
-  private def getTCIPathFromIMGData(imgDataPath: File, accuracy: Int): String = {
+  private def getTCIImgPath(imgDataPath: File): String = {
     def getListOfFiles(dir: File):List[File] = dir.listFiles.filter(_.isFile).toList
-    val listOfDirectoriesAccuracies = getListOfDirectories(imgDataPath)
-    if (listOfDirectoriesAccuracies.length > 0) {
-      getListOfFiles(listOfDirectoriesAccuracies.filter(f => accuracy.toString.r.findFirstIn(f.getName).isDefined).head).filter(f => "TCI".r.findFirstIn(f.getName).isDefined).head.toString
-    } else {
-      getListOfFiles(imgDataPath).filter(f => "TCI".r.findFirstIn(f.getName).isDefined).head.toString
-    }
+    getListOfFiles(imgDataPath).filter(f => "TCI".r.findFirstIn(f.getName).isDefined).head.toString
   }
 
-  private def cleanPEPSImageDir(pathFull: String) = {
-    val listOfDirectories = getListOfDirectories(new File(pathFull))
-    listOfDirectories.foreach(deleteRecursively)
-  }
-
-  private def getTCIPath(pathFull: String, accuracy: Int): String = {
+  private def getTCIPath(pathFull: String): String = {
     var path = "";
-    val mandatoryPath = pathFull + "/IMG_DATA"
+    val mandatoryPath = pathFull
     if (fileExists(mandatoryPath) && isDirectory(mandatoryPath)) {
       val imgDataDir = new File(mandatoryPath)
-      val originPath = getTCIPathFromIMGData(imgDataDir,accuracy)
-      val filename = originPath.split("/").toList.last
+      val originPathImg = getTCIImgPath(imgDataDir)
+      val filename = originPathImg.split("/").toList.last
       path = s"${pathFull}/${filename}"
-      moveToPermanentPlace(originPath,path)
-      cleanPEPSImageDir(pathFull)
     }
     path
   }
@@ -118,7 +106,7 @@ class TilesRequestHandler extends Actor with ActorLogging {
     val pathfull = "images/" + name
     if (fileExists(pathfull)) {
       if (isDirectory(pathfull)) {
-        val pathTCI = getTCIPath(pathfull, 10)
+        val pathTCI = getTCIPath(pathfull)
         if (pathTCI.nonEmpty) {
           if (isAlreadyTiled(name)) {
             father ! TilesResponse(CorrectTiles(name, s"images/${name}/tiles", s"Tiles have been already computed for this image").toJson)
