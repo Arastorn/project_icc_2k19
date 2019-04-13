@@ -27,22 +27,6 @@ import services.images.messages.ImagesMessages._
 class ImagesRequestHandler extends Actor with ActorLogging{
 
   // Récupération des coordonnées
-  def getCoordsFromSw(jsonCoords: JsValue): (String,String) = {
-    jsonCoords.asJsObject.getFields("sw") match {
-      case Seq(sw) =>
-        (sw.asJsObject.getFields("lng")(0).toString,sw.asJsObject.getFields("lat")(0).toString)
-      case _ => ("","")
-    }
-  }
-
-
-  def getCoordsFromNe(jsonCoords: JsValue): (String,String) = {
-    jsonCoords.asJsObject.getFields("ne") match {
-      case Seq(ne) =>
-        (ne.asJsObject.getFields("lng")(0).toString,ne.asJsObject.getFields("lat")(0).toString)
-      case _ => ("","")
-    }
-  }
 
 
   def getItemFromJsKey(json: JsValue, key: String): JsValue = {
@@ -58,12 +42,38 @@ class ImagesRequestHandler extends Actor with ActorLogging{
     getItemFromJsKey(jsonCoords,"boundingbox")
   }
 
+
   def getStringFromJsKey(json: JsValue, key: String): String = {
     json.asJsObject.getFields(key) match {
       case Seq(JsString(string)) =>
         string
       case _ => ""
     }
+  }
+
+  /*def getCoordsFromSw(jsonCoords: JsValue): (String,String) = {
+    jsonCoords.asJsObject.getFields("sw") match {
+      case Seq(sw) =>
+        (sw.asJsObject.getFields("lng")(0).toString,sw.asJsObject.getFields("lat")(0).toString)
+      case _ => ("","")
+    }
+  }
+
+
+  def getCoordsFromNe(jsonCoords: JsValue): (String,String) = {
+    jsonCoords.asJsObject.getFields("ne") match {
+      case Seq(ne) =>
+        (ne.asJsObject.getFields("lng")(0).toString,ne.asJsObject.getFields("lat")(0).toString)
+      case _ => ("","")
+    }
+  }*/
+
+  def getCoordsFromNe(json: JsValue): (String,String) = {
+    (getItemFromJsKey(getItemFromJsKey(json,"ne"),"lng").toString,getItemFromJsKey(getItemFromJsKey(json,"ne"),"lat").toString)
+  }
+
+  def getCoordsFromSw(json : JsValue): (String,String) = {
+    (getItemFromJsKey(getItemFromJsKey(json,"sw"),"lng").toString,getItemFromJsKey(getItemFromJsKey(json,"sw"),"lat").toString)
   }
 
   def getStartDate(json: JsValue): String = {
@@ -363,12 +373,12 @@ class ImagesRequestHandler extends Actor with ActorLogging{
   def getImageResponse(json: JsValue,father: ActorRef) = {
     val coords = getNeAndSw(json)
     val date = (getStartDate(json), getEndDate(json))
-    if(coords._1._1 == "" || coords._1._2 == "" || coords._2._1 == "" || coords._2._2 == "") {
+    if(coords._1._1 == "{}" || coords._1._2 == "{}" || coords._2._1 == "{}" || coords._2._2 == "{}") {
       father ! WrongJsonCoord(WrongCoords("No coords found","BAD_REQUEST").toJson)
     }
     else if(date._1.length() == 0 || date._2.length == 0)
     {
-      father ! WrongJsonCoord(WrongCoords("No start date or end date found","BAD_REQUEST").toJson)
+      father ! WrongJsonCoord(WrongCoords("No start date found","BAD_REQUEST").toJson)
     }
     else
     {

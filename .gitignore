@@ -1,9 +1,5 @@
 target/*
 project/target/*
-download/*
-!download
-images/*
-!images
 gdal2tiles-script/*
 tiles/*
 tmp/*
