@@ -5,6 +5,9 @@ import akka.actor._
 import spray.json._
 
 object ElasticSearchMessages {
-  case class ElasticSearchResponse(elasticSearch: String)
+  case class ElasticSearchResponse(status: JsValue)
+  case class BoundingBoxQueryElasticSearch(boundingBox: JsValue)
+  case class ElasticSearchQueryResponse(status: JsValue)
+  case class ElasticSearchQueryThrowServerError()
   object GetElasticSearchRequest
 }
