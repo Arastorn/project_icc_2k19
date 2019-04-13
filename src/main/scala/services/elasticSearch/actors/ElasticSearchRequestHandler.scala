@@ -65,9 +65,55 @@ class ElasticSearchRequestHandler extends Actor with ActorLogging{
   }
 
   private def researchES(elasticRoute: String, data: Map[String, Coordinates]): JsValue = {
-    val query = """{"query":{"term":{"_id":"036febe9-a5c8-5b0e-83e5-c8a565a1eea5"}}}"""
+    val query = s"""{
+      "query" : {
+          "bool": {
+              "must": [
+                  {
+                      "range" : {
+                          "geometric_info.bounding_box.maxx": {
+                              "lte" : ${data.get("ne").get.lon}
+                              }
+                      }
+                  },
+                  {
+                      "range" : {
+                          "geometric_info.bounding_box.maxy": {
+                              "lte" : ${data.get("ne").get.lat}
+                              }
+                      }
+                  },
+                  {
+                      "range" : {
+                          "geometric_info.bounding_box.minx": {
+                              "gte" : ${data.get("sw").get.lon}
+                              }
+                      }
+                  },
+                  {
+                      "range" : {
+                          "geometric_info.bounding_box.miny": {
+                              "gte" : ${data.get("sw").get.lat}
+                              }
+                      }
+                  }
+              ]
+          }
+
+      }
+    }"""
+    println(query)
     val request = Http(s"${elasticRoute}/images/metadata/_search").header("content-type", "application/json").postData(query)
     request.asString.body.parseJson.toJson
+  }
+
+  private def parseJsonResultElasticSearch(res: JsValue) = {
+    val mapValues = getItemFromJsKey(getItemFromJsKey(res, "hits"),"hits").asInstanceOf[JsArray].convertTo[List[JsValue]].map(
+      e => ("name", getItemFromJsKey(e,"_id"))
+    ).toMap
+    Map(
+      "images" -> mapValues
+    ).toJson
   }
 
   private def queryElasticSearch(boundingBox: JsValue, father: ActorRef): Unit = {
@@ -83,7 +129,8 @@ class ElasticSearchRequestHandler extends Actor with ActorLogging{
     if (isElasticUp(elasticRoute)) {
       val data = prepareData(boundingBox)
       val res = researchES(elasticRoute, data)
-      father ! ElasticSearchQueryResponse(res)
+      val dataRes = parseJsonResultElasticSearch(res)
+      father ! ElasticSearchQueryResponse(dataRes)
     } else {
       father ! ElasticSearchQueryResponse(ElasticSearchErrorStatus(elasticRoute, "Elastic search service is down, try again later ...", "ELASTIC_SEARCH_NOT_REACHABLE").toJson)
     }
