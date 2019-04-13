@@ -54,25 +54,35 @@ class MetadataRequestHandler extends Actor with ActorLogging{
     request.asString.body.parseJson.toJson
   }
 
-  private def getMetadata(xml: Elem): JsValue = Metadata(
-    GeneralInfoMetadata(
-      (xml \\ "Level-1C_Tile_ID" \\ "General_Info" \\ "TILE_ID").text.toString,
-      (xml \\ "Level-1C_Tile_ID" \\ "General_Info" \\ "DATASTRIP_ID").text.toString,
-      (xml \\ "Level-1C_Tile_ID" \\ "General_Info" \\ "SENSING_TIME").text.toString,
-      ArchivingInfoMetadata(
-        (xml \\ "Level-1C_Tile_ID" \\ "General_Info" \\ "Archiving_Info" \\ "ARCHIVING_CENTRE").text.toString,
-        (xml \\ "Level-1C_Tile_ID" \\ "General_Info" \\ "Archiving_Info" \\ "ARCHIVING_TIME").text.toString
+  private def getMetadata(xml: Elem): JsValue = {
+    val firstChildNode = xml.collect{
+      case el: Elem => el.label
+    }.headOption.getOrElse("").toString
+    val qualityIndicatorsInfoMetadataMap = (xml \\ firstChildNode \\ "Quality_Indicators_Info" \\ "Image_Content_QI" \ "_").toList.map(e => e.collect{
+      case el: Elem => el.label
+    }.headOption.getOrElse("").toString).map(
+      e => (e, (xml \\ firstChildNode \\ "Quality_Indicators_Info" \\ "Image_Content_QI" \\ e).text.toDouble)
+    ).toMap
+    //val qualityIndicatorsInfoMetadataMap =
+    Metadata(
+      GeneralInfoMetadata(
+        (xml \\ firstChildNode \\ "General_Info" \\ "TILE_ID").text.toString,
+        (xml \\ firstChildNode \\ "General_Info" \\ "DATASTRIP_ID").text.toString,
+        (xml \\ firstChildNode \\ "General_Info" \\ "SENSING_TIME").text.toString,
+        ArchivingInfoMetadata(
+          (xml \\ firstChildNode \\ "General_Info" \\ "Archiving_Info" \\ "ARCHIVING_CENTRE").text.toString,
+          (xml \\ firstChildNode \\ "General_Info" \\ "Archiving_Info" \\ "ARCHIVING_TIME").text.toString
+        )
+      ),
+      GeometricInfoMetadata(
+        (xml \\ firstChildNode \\ "Geometric_Info" \\ "Tile_Geocoding" \\ "HORIZONTAL_CS_NAME").text.toString,
+        (xml \\ firstChildNode \\ "Geometric_Info" \\ "Tile_Geocoding" \\ "HORIZONTAL_CS_CODE").text.toString
+      ),
+      QualityIndicatorsInfoMetadata(
+        qualityIndicatorsInfoMetadataMap
       )
-    ),
-    GeometricInfoMetadata(
-      (xml \\ "Level-1C_Tile_ID" \\ "Geometric_Info" \\ "Tile_Geocoding" \\ "HORIZONTAL_CS_NAME").text.toString,
-      (xml \\ "Level-1C_Tile_ID" \\ "Geometric_Info" \\ "Tile_Geocoding" \\ "HORIZONTAL_CS_CODE").text.toString
-    ),
-    QualityIndicatorsInfoMetadata(
-      (xml \\ "Level-1C_Tile_ID" \\ "Quality_Indicators_Info" \\ "Image_Content_QI" \\ "CLOUDY_PIXEL_PERCENTAGE").text.toDouble,
-      (xml \\ "Level-1C_Tile_ID" \\ "Quality_Indicators_Info" \\ "Image_Content_QI" \\ "DEGRADED_MSI_DATA_PERCENTAGE").text.toDouble
-    )
-  ).toJson
+    ).toJson
+  }
 
   private def elasticAdditionSuccess(body: JsValue): Boolean = {
     val resValue = body.asJsObject.getFields("result").head.toString.dropRight(1).substring(1)

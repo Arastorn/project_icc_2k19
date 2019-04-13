@@ -59,12 +59,10 @@ final case class GeometricInfoMetadata(
 }
 
 final case class QualityIndicatorsInfoMetadata(
-  cloudy_pixel_percentage: Double,
-  degraded_msi_data_percentage: Double
+  quality_indicators_info_metadata: Map[String,Double]
 ) {
   def toJson = JsObject(
-    "cloudy_pixel_percentage" -> JsNumber(cloudy_pixel_percentage),
-    "degraded_msi_data_percentage" -> JsNumber(degraded_msi_data_percentage)
+    "quality_indicators_info_metadata" -> quality_indicators_info_metadata.toJson
   )
 }
 
