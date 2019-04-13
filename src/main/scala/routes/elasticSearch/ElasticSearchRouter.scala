@@ -25,12 +25,14 @@ trait ElasticSearchRouter {
   def elasticSearchRequestHandler : ActorRef
 
   def getElasticSearch: Route =
-    get {
-      onSuccess(elasticSearchRequestHandler ? GetElasticSearchRequest) {
-        case response: ElasticSearchResponse =>
-          complete(StatusCodes.OK, response.elasticSearch)
-        case _ =>
-          complete(StatusCodes.InternalServerError)
+    post {
+      entity(as[JsValue]) {
+        boundingBox => onSuccess(elasticSearchRequestHandler ? BoundingBoxQueryElasticSearch(boundingBox)) {
+          case response: ElasticSearchQueryResponse =>
+            complete(StatusCodes.OK, response.status)
+          case response: ElasticSearchQueryThrowServerError =>
+            complete(StatusCodes.InternalServerError)
+        }
       }
     }
 
