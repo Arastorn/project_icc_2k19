@@ -111,9 +111,7 @@ class ElasticSearchRequestHandler extends Actor with ActorLogging{
     val mapValues = getItemFromJsKey(getItemFromJsKey(res, "hits"),"hits").asInstanceOf[JsArray].convertTo[List[JsValue]].map(
       e => ("name", getItemFromJsKey(e,"_id"))
     ).toMap
-    Map(
-      "images" -> mapValues
-    ).toJson
+    s"""{"status":"Query successful","statusCode":"SUCCESS","images":${mapValues.toJson.toString},"imgNumber":${mapValues.size}}""".parseJson.toJson
   }
 
   private def queryElasticSearch(boundingBox: JsValue, father: ActorRef): Unit = {
