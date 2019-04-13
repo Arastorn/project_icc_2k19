@@ -1,9 +1,9 @@
 target/*
 project/target/*
 download/*
-!download/script.sh
+!download
 images/*
+!images
 gdal2tiles-script/*
 tiles/*
-script/download.sh
 tmp/*
