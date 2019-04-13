@@ -14,6 +14,7 @@ import java.nio.file.{Files, Path, Paths, StandardCopyOption}
 import util.Try
 import scala.xml.{XML, Elem}
 
+import java.net.InetAddress
 import java.net.ConnectException
 
 import services.metadata.models._
@@ -89,7 +90,15 @@ class MetadataRequestHandler extends Actor with ActorLogging{
   }
 
   def postElasticMetadata(imgJson: JsValue, father: ActorRef): Unit = {
-    val elasticRoute = "http://localhost:9200"
+    val ipHostname = InetAddress.getLocalHost().toString.split("/")
+    val hostname = ipHostname(0)
+    val ip = ipHostname(1)
+    var elasticRoute = ""
+    if ( hostname == "osboxes" ) {
+       elasticRoute = "http://" + ip + ":9200"
+    } else {
+       elasticRoute = "http://localhost:9200"
+    }        
     val name = prepareData(imgJson)("name")
     val pathToTheImage = "images/" + name
     val pathToTheMetadata = pathToTheImage + "/MTD_TL.xml"
