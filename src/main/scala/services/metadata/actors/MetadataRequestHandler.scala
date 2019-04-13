@@ -63,7 +63,6 @@ class MetadataRequestHandler extends Actor with ActorLogging{
     }.headOption.getOrElse("").toString).map(
       e => (e, (xml \\ firstChildNode \\ "Quality_Indicators_Info" \\ "Image_Content_QI" \\ e).text.toDouble)
     ).toMap
-    //val qualityIndicatorsInfoMetadataMap =
     Metadata(
       GeneralInfoMetadata(
         (xml \\ firstChildNode \\ "General_Info" \\ "TILE_ID").text.toString,
