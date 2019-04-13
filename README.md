@@ -1,9 +1,15 @@
 # project_icc_2k19
 
+# projet front
+
+Un projet front permet de visualiser notre api. Disponible sur le lien suivant :
+https://github.com/DracarysBZH/project-icc-front
+
 # VM
 
-Une installation toute préparée avec le front du projet et le back est disponible dans une vm. Vous pouvez suivre les instructions d'installation sur le site :
+Une installation toute préparée avec le front et le back du projet  disponible dans une vm. Vous pouvez suivre les instructions d'installation sur le site :
 https://dracarys.bzh/projet-icc-2k19/
+
 
 # Docker
     - Dans `src/main/scala/serveur/ApplicationServer.scala` :
@@ -16,9 +22,13 @@ https://dracarys.bzh/projet-icc-2k19/
 
 # Prérequis
 - GdaltoTiles
-- Elastic search
+- Elastic search port 9200
 - sbt
 - openvpn
+
+# Build
+
+Lancer  ``` sbt run ``` à la racine du projet
 
 # Informations de l'API
 
