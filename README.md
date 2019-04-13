@@ -1,5 +1,10 @@
 # project_icc_2k19
 
+# VM
+
+Une installation toute préparée avec le front du projet et le back est disponible dans une vm. Vous pouvez suivre les instructions d'installation sur le site :
+https://dracarys.bzh/projet-icc-2k19/
+
 # Docker
     - Dans `src/main/scala/serveur/ApplicationServer.scala` :
         - Modifier `val host = "localhost"` par `val host = "0.0.0.0"`
@@ -9,18 +14,24 @@
     - `docker run -dit -p 9001:9001 --name projet_icc_2k19 projet_icc_2k19:0.1.0-SNAPSHOT`
 
 
+# Prérequis
+- GdaltoTiles
+- Elastic search
+- sbt
+- openvpn
+
 # Informations de l'API
 
 ## Description
 
 * /hiking/:id :
-  - **GET** Récupère les texte d'une randonnée sur l'api choucas avec l'id correspondant.
+  - **GET** Récupère les textes d'une randonnée sur l'api choucas avec l'id correspondant.
 * /extract :
-  - **POST** Récupère des entitées sémantiques via un texte via le service DBPEDIA
+  - **POST** Récupère des entités sémantiques via un texte via le service DBPEDIA
 * /geolocalize :
-  - **POST** Géolocalise des entitées sémantique
+  - **POST** Géolocalise des entités sémantiques
 * /utm :
-  - **POST** Récupère une bounding box à partir de coordonées
+  - **POST** Récupère une bounding box à partir de coordonnées
 * /images :
   - **POST** Télécharge des images qui appartiennent à une bounding box et d'une date
 * /tiles :
@@ -32,7 +43,7 @@
 * /metadata :
   - **POST** Insère des meta-données dans un elastic search
 * /elasticSearch :
-  - **POST** Récupère une image qui est inclue dans une bounding box donnée
+  - **POST** Récupère une image qui est incluse dans une bounding box donnée
 
 ## Exemples
 
@@ -108,7 +119,6 @@ curl  --request GET \
 curl  --request POST \
       --url http://localhost:9001/save \
       --header 'Content-Type: application/json' \
-      --header 'Postman-Token: 40129199-ed13-4936-8980-db357eee97ee' \
       --header 'cache-control: no-cache' \
       --data '{\n	"imgName": "be65e6ec-3118-5601-9b28-858f0bc6ea96"\n}'
 ```
@@ -116,15 +126,25 @@ curl  --request POST \
 ### MetaData
 
 ```bash
+curl --request POST \
+  --url http://localhost:9001/metadata \
+  --header 'Content-Type: application/json' \
+  --header 'cache-control: no-cache' \
+  --data '{\n	"name":"362880a0-bad9-5ce4-98a9-cbdb1bc4746c"\n}'
 ```
 
 ### ElasticSearch
 
 ```bash
+curl  --request POST \
+      --url http://localhost:9001/elasticSearch \
+      --header 'Content-Type: application/json' \
+      --header 'cache-control: no-cache' \
+      --data '{\n    "boundingbox": {\n        "ne": {\n            "lng": 6.757,\n            "lat": 46.166688\n        },\n        "sw": {\n            "lng": 6.066644,\n            "lat": 43.51224\n        }\n    },\n    "date": {\n        "start": "2019-03-11",\n        "end": "2019-04-01"\n    }\n}'
 ```
 
 # Authors
 
-Antoine Bourgeois
-Lucas Pauzies
-Laurine Sorel
+- Antoine Bourgeois
+- Lucas Pauzies
+- Laurine Sorel
